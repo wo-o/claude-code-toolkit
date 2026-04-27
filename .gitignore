@@ -20,8 +20,9 @@ secrets/
 audit/
 *.jsonl
 
-# deep-plan / deep-execute ralph state
+# deep-plan / deep-execute ralph state — kept private (contains design notes)
 .deep-plan/
+plan.md
 
 # Cron / launchd backups (often contain plist with EnvironmentVariables)
 *.plist.bak
