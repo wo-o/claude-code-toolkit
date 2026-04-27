@@ -1,0 +1,13 @@
+{
+  "_status": "DISABLED — security review pending",
+  "_why_separated": "Google Drive MCP is currently brokered via mcp.composio.dev (third-party). Sample OAuth tokens transit Composio infrastructure. Re-evaluate when Anthropic-native GDrive MCP ships.",
+  "_how_to_enable": "After security team approval: copy the entry under `mcpServers.google-drive` into .mcp.json, restart Claude Code, run `/mcp google-drive` to OAuth.",
+  "_revoke_path": "https://composio.dev → settings → connected accounts → revoke",
+  "mcpServers": {
+    "google-drive": {
+      "type": "http",
+      "url": "https://mcp.composio.dev/composio/server/google-drive/mcp",
+      "_note": "third-party broker (composio.dev) — OAuth tokens transit Composio infra"
+    }
+  }
+}

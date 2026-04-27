@@ -1,0 +1,26 @@
+{
+  "name": "claude-code-toolkit",
+  "owner": {
+    "name": "wo-o",
+    "url": "https://github.com/wo-o/claude-code-toolkit"
+  },
+  "metadata": {
+    "description": "팀 생산성 plugin marketplace. claude-code-toolkit 단일 plugin (다직군 통합) 배포."
+  },
+  "plugins": [
+    {
+      "name": "claude-code-toolkit",
+      "source": "./",
+      "description": "팀 생산성 Claude Code skills + subagents 통합 plugin. 8 skills, 7 agents, 4 active MCPs.",
+      "category": "team-productivity",
+      "tags": [
+        "team-productivity",
+        "skills",
+        "subagents",
+        "mcp",
+        "code-review",
+        "workshop"
+      ]
+    }
+  ]
+}

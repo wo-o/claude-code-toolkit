@@ -1,0 +1,56 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+.envrc
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+secrets/
+**/credentials*.json
+**/*apikey*
+**/*-pat
+**/*.token
+
+# Local plugin state
+.claude-code-toolkit/
+audit/
+*.jsonl
+
+# deep-plan / deep-execute ralph state
+.deep-plan/
+
+# Cron / launchd backups (often contain plist with EnvironmentVariables)
+*.plist.bak
+*.plist.local
+LaunchAgents-backup/
+
+# macOS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.netrwhist
+
+# Workshop demo artifacts (may contain test PR diffs / fake creds)
+demo/
+demo-pr/
+.demo-state/
+
+# Composio / 3rd-party broker session caches
+.composio/
+composio-cache/
+
+# OS-injected
+Thumbs.db
+desktop.ini

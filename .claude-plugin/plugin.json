@@ -1,0 +1,22 @@
+{
+  "name": "claude-code-toolkit",
+  "description": "팀 생산성 Claude Code plugin. 직군별(엔지·보안·PM·세일즈·CS) skills + subagents 통합. 8 skills, 7 agents, 4 active MCPs (GitHub/Slack/Notion/HubSpot, Google Drive optional). 워크샵 데모 픽: decision-log-keeper, ticket-triage-router, pr-pattern-auditor.",
+  "author": {
+    "name": "wo-o",
+    "url": "https://github.com/wo-o/claude-code-toolkit"
+  },
+  "homepage": "https://github.com/wo-o/claude-code-toolkit",
+  "license": "MIT",
+  "hooks": "./hooks/hooks.json",
+  "keywords": [
+    "team-productivity",
+    "skills",
+    "subagents",
+    "mcp",
+    "github",
+    "slack",
+    "notion",
+    "hubspot",
+    "code-review"
+  ]
+}
