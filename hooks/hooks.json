@@ -2,15 +2,6 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "mcp__github__create_pull_request_comment",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "if [ \"${CLAUDE_CODE_TOOLKIT_CI_MODE:-0}\" = \"1\" ]; then mkdir -p \"${HOME}/.claude-code-toolkit/audit\" && printf '{\"ts\":\"%s\",\"hook\":\"PreToolUse\",\"matcher\":\"mcp__github__create_pull_request_comment\",\"mode\":\"ci_bypass\"}\\n' \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\" >> \"${HOME}/.claude-code-toolkit/audit/pr-pattern-auditor-$(date -u +%Y-%m-%d).jsonl\"; exit 0; fi; printf '\\n[claude-code-toolkit] pr-pattern-auditor는 PR comment를 자동 게시하려 합니다.\\n  bypass: CLAUDE_CODE_TOOLKIT_CI_MODE=1\\n계속하려면 Enter, 취소는 Ctrl+C: ' >&2 && read -r _ </dev/tty"
-          }
-        ]
-      },
-      {
         "matcher": "mcp__notion__create_page",
         "hooks": [
           {

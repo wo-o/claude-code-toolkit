@@ -11,16 +11,9 @@
     {
       "name": "claude-code-toolkit",
       "source": "./",
-      "description": "팀 생산성 Claude Code skills + subagents 통합 plugin. 8 skills, 7 agents, 4 active MCPs.",
+      "description": "팀 생산성 Claude Code skills + subagents 통합 plugin. 6 skills, 5 agents.",
       "category": "team-productivity",
-      "tags": [
-        "team-productivity",
-        "skills",
-        "subagents",
-        "mcp",
-        "code-review",
-        "workshop"
-      ]
+      "tags": ["team-productivity", "skills", "subagents", "workshop"]
     }
   ]
 }
