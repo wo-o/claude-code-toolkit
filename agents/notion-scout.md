@@ -1,7 +1,7 @@
 ---
 name: notion-scout
 description: Scouts Notion for pages and databases related to a project. Read-only access. Returns a structured summary of project status, milestones, and decisions. Use when the main agent needs Notion context without polluting its own conversation.
-tools: mcp__notion__search, mcp__notion__fetch
+tools: mcp__claude_ai_Notion__notion-search, mcp__claude_ai_Notion__notion-fetch
 ---
 
 # notion-scout

@@ -1,6 +1,6 @@
 {
   "name": "claude-code-toolkit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Team productivity Claude Code plugin. Role-aware (eng / security / PM / sales / CS) skills + subagents. 14 skills, 5 agents. Slack / Notion / HubSpot / Gmail / Google Calendar via claude.ai/customize/connectors. Workshop demo picks: decision-log-keeper, ticket-triage-router, spec-from-thread.",
   "author": {
     "name": "wo-o",

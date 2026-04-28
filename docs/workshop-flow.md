@@ -69,7 +69,7 @@ The 7 scheduled + 1 on-demand "extended" skills do not fit the 5-minute slot but
 ### Why these are not in the core 5-minute slot
 
 - **Latency**: scheduled skills aggregate over 24h-7d windows. Even a manual invocation needs 60-180 seconds. The core demo budget is 90 seconds per skill
-- **Hook prompts**: each scheduled skill triggers `PreToolUse(mcp__notion__create_page)` or `PreToolUse(mcp__notion__update_page)`. Showing one hook is the X climax; showing four is fatigue
+- **Hook prompts**: each scheduled skill triggers `PreToolUse(mcp__claude_ai_Notion__notion-create-pages)` or `PreToolUse(mcp__claude_ai_Notion__notion-update-page)`. Showing one hook is the X climax; showing four is fatigue
 - **Audience match**: `blocker-radar` resonates with eng managers but bores PMs; `okr-sync` is the reverse. The core 3 picks were chosen for cross-role appeal
 
 ## Presenter prep for extended demos

@@ -7,7 +7,7 @@ description: Given a competitor name, fetch HubSpot deals where the competitor w
 
 A one-page battle card synthesized for a salesperson trying to answer "Which of our competitors is this account weighing us against?" in the 5 minutes before a first meeting with a new lead. HubSpot alone gives only past deal outcomes; Notion alone gives only static feature comparisons — the LLM cross-references both sources and even recommends talking points in a single pass.
 
-**Drift risk H** — the HubSpot MCP is brand new GA (2026-04-13). Tool names may change. Mandatory: dry-run-verify the `mcp__hubspot__*` tool list before the first call.
+**Drift risk H** — the HubSpot MCP is brand new GA (2026-04-13). Tool names may change. Mandatory: dry-run-verify the `mcp__claude_ai_HubSpot__*` tool list before the first call.
 
 ## Input
 
@@ -71,15 +71,15 @@ Prints a one-page markdown battle card to the console (no writes; the salesperso
 ### 2. Verify HubSpot MCP tools (drift defense)
 
 Before the first call, confirm the tools you intend to use are actually exposed:
-- `mcp__hubspot__search_companies` (or equivalent)
-- `mcp__hubspot__get_company`
-- `mcp__hubspot__list_deals` (or equivalent)
+- `mcp__claude_ai_HubSpot__search_companies` (or equivalent)
+- `mcp__claude_ai_HubSpot__get_company`
+- `mcp__claude_ai_HubSpot__list_deals` (or equivalent)
 
 If a tool name differs, abort immediately — re-confirm tool names with the dry-run procedure in `docs/mcp-setup.md`, then re-run with `--competitor`.
 
 ### 3. Collect HubSpot deals
 
-1. `mcp__hubspot__search_companies` to match the competitor name — 1-2 competitor company objects registered in HubSpot
+1. `mcp__claude_ai_HubSpot__search_companies` to match the competitor name — 1-2 competitor company objects registered in HubSpot
 2. Fetch deals associated with that company (within the last `--deal-window-days`)
 3. For each deal, capture: stage (won/lost/open), amount, close date, lost reason notes
 
@@ -87,7 +87,7 @@ If 0 deals, state explicitly "No HubSpot deals featuring this competitor" (do no
 
 ### 4. Search Notion comparison pages
 
-Use `mcp__notion__search` with the competitor name:
+Use `mcp__claude_ai_Notion__notion-search` with the competitor name:
 - Keywords: competitor name + "comparison" / "vs" / "competitive"
 - Fetch the 1-3 closest pages
 - Extract last edit date

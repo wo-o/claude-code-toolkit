@@ -23,7 +23,7 @@ Quarterly OKR rituals collapse for a reliable reason: nobody updates progress un
 - Stale KRs flagged: <count>
 ```
 
-The Notion OKR DB schema (one-time setup; the skill validates with `mcp__notion__fetch` before writing):
+The Notion OKR DB schema (one-time setup; the skill validates with `mcp__claude_ai_Notion__notion-fetch` before writing):
 
 | Column | Type | Content |
 |---|---|---|
@@ -44,11 +44,11 @@ The Notion OKR DB schema (one-time setup; the skill validates with `mcp__notion_
 - `--window-weeks` clamped to [1, 13] (one-week minimum, one-quarter maximum)
 - `--okr-db-id` missing AND env missing → AskUserQuestion
 - `--evidence-channels` missing AND env missing → AskUserQuestion
-- Validate the OKR DB schema with `mcp__notion__fetch` once — fail loudly if columns are missing
+- Validate the OKR DB schema with `mcp__claude_ai_Notion__notion-fetch` once — fail loudly if columns are missing
 
 ### 2. Fetch all KRs
 
-Call `mcp__notion__fetch` against the OKR DB. Fetch every row's Key Result text + Objective + Owner + the existing auto-fields. Skip rows whose Status is `Closed` or `Archived` (custom column in some setups — best-effort detection).
+Call `mcp__claude_ai_Notion__notion-fetch` against the OKR DB. Fetch every row's Key Result text + Objective + Owner + the existing auto-fields. Skip rows whose Status is `Closed` or `Archived` (custom column in some setups — best-effort detection).
 
 ### 3. Run slack-scout for evidence channels
 
@@ -93,9 +93,9 @@ For each KR with zero matches this window:
 - If weeks ≥ `--stale-threshold-weeks` → `Pulse` ← `Stale`
 - `Last sync` ← now
 
-Call `mcp__notion__update_page` for each KR.
+Call `mcp__claude_ai_Notion__notion-update-page` for each KR.
 
-**Hook behavior:** the plugin's `PreToolUse(mcp__notion__update_page)` hook fires on the first update — asks once "About to update K OKR rows. Proceed?". In cron mode set `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` to bypass + write only an audit log entry (`~/.claude-code-toolkit/audit/okr-sync-YYYY-Www.jsonl`).
+**Hook behavior:** the plugin's `PreToolUse(mcp__claude_ai_Notion__notion-update-page)` hook fires on the first update — asks once "About to update K OKR rows. Proceed?". In cron mode set `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` to bypass + write only an audit log entry (`~/.claude-code-toolkit/audit/okr-sync-YYYY-Www.jsonl`).
 
 ### 6. Generate the stale-KR digest
 
@@ -132,7 +132,7 @@ See `docs/cron-setup.md` for the full plist example.
 - **Owner change between quarters**: when a KR's owner changes mid-quarter, the `Last evidence` rolls forward but the historical evidence count includes prior-quarter activity. Reset `Evidence count (this quarter)` at quarter boundaries (separate manual step)
 - **Stale flagging too aggressive**: `--stale-threshold-weeks=4` is reasonable for engineering KRs with weekly shipping cadence. For research / sales / hiring KRs, use 8 or higher (per-KR threshold override is out of scope for v1)
 - **Multiple KRs match the same evidence**: a single shipping event can advance 2-3 KRs. Allow this — record the same evidence link on each matching KR. Do not de-duplicate across KRs
-- **Notion DB schema drift**: column renames break every run. The pre-flight `mcp__notion__fetch` validation catches this — exit with the expected schema printed
+- **Notion DB schema drift**: column renames break every run. The pre-flight `mcp__claude_ai_Notion__notion-fetch` validation catches this — exit with the expected schema printed
 - **Slack window mismatch with Notion quarter**: the skill's window is N weeks, not aligned to the OKR cycle. The `Evidence count (this quarter)` column requires the operator to manually reset at quarter boundaries
 
 ## Tone

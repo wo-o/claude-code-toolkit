@@ -23,7 +23,7 @@ A teammate `@mentions` you on Tuesday. You see it, plan to reply that evening, a
 - Top responders with backlog: @user1 (N) · @user2 (M) · @user3 (P)
 ```
 
-The Notion DB schema (one-time setup; the skill validates with `mcp__notion__fetch` before writing):
+The Notion DB schema (one-time setup; the skill validates with `mcp__claude_ai_Notion__notion-fetch` before writing):
 
 | Column | Type | Content |
 |---|---|---|
@@ -44,11 +44,11 @@ The Notion DB schema (one-time setup; the skill validates with `mcp__notion__fet
 
 - `--scan-channels` missing AND env missing → AskUserQuestion (default to a curated channel list — scanning every public channel is rate-limit-hostile)
 - `--notion-db-id` missing AND env missing → AskUserQuestion
-- Validate the Notion DB schema with `mcp__notion__fetch` once
+- Validate the Notion DB schema with `mcp__claude_ai_Notion__notion-fetch` once
 
 ### 2. Find mentions
 
-For each channel, call `mcp__slack__get_channel_history` over the last 21 days (longest tier + buffer). Filter messages whose body contains an `@user` reference. Resolve user_ids → display_names via `mcp__slack__get_user_info` (cached).
+For each channel, call `mcp__claude_ai_Slack__slack_read_channel` over the last 21 days (longest tier + buffer). Filter messages whose body contains an `@user` reference. Resolve user_ids → display_names via `mcp__claude_ai_Slack__slack_read_user_profile` (cached).
 
 For thread parents with at least one mention, also fetch thread replies (so the reply check is accurate).
 
@@ -100,9 +100,9 @@ For each mention:
 - If not found and `Tier ≠ Resolved` → `create_page`
 - If not found and `Tier: Resolved` → skip (no point creating a closed row)
 
-Call `mcp__notion__create_page` or `mcp__notion__update_page` accordingly.
+Call `mcp__claude_ai_Notion__notion-create-pages` or `mcp__claude_ai_Notion__notion-update-page` accordingly.
 
-**Hook behavior:** the plugin's `PreToolUse(mcp__notion__create_page)` and `PreToolUse(mcp__notion__update_page)` hooks fire on the first call per run — asks once "About to upsert N mention rows. Proceed?". In cron mode set `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` to bypass + write only an audit log entry (`~/.claude-code-toolkit/audit/zombie-killer-YYYY-MM-DD.jsonl`).
+**Hook behavior:** the plugin's `PreToolUse(mcp__claude_ai_Notion__notion-create-pages)` and `PreToolUse(mcp__claude_ai_Notion__notion-update-page)` hooks fire on the first call per run — asks once "About to upsert N mention rows. Proceed?". In cron mode set `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` to bypass + write only an audit log entry (`~/.claude-code-toolkit/audit/zombie-killer-YYYY-MM-DD.jsonl`).
 
 ### 7. Output
 

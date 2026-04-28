@@ -25,7 +25,7 @@ Outbound is **draft-only** by Connector design (Anthropic's Gmail Connector expo
 - Notion DB: <DB URL>
 ```
 
-The Notion DB schema (one-time setup; the skill validates with `mcp__notion__fetch` before writing):
+The Notion DB schema (one-time setup; the skill validates with `mcp__claude_ai_Notion__notion-fetch` before writing):
 
 | Column | Type | Content |
 |---|---|---|
@@ -45,18 +45,18 @@ The Notion DB schema (one-time setup; the skill validates with `mcp__notion__fet
 - `--since-hours` missing → 24
 - `--label-prefix` missing → `Triage/`
 - `--notion-db-id` missing AND env missing → AskUserQuestion
-- Validate the Notion DB schema with `mcp__notion__fetch` once. If columns are missing, exit and print the expected schema for the operator to add manually
-- Ensure the four labels exist via `mcp__gmail__list_labels` — create any missing ones with `mcp__gmail__create_label`
+- Validate the Notion DB schema with `mcp__claude_ai_Notion__notion-fetch` once. If columns are missing, exit and print the expected schema for the operator to add manually
+- Ensure the four labels exist via `mcp__claude_ai_Gmail__list_labels` — create any missing ones with `mcp__claude_ai_Gmail__create_label`
 
 ### 2. Collect candidate threads
 
-Call `mcp__gmail__search_threads` with the query:
+Call `mcp__claude_ai_Gmail__search_threads` with the query:
 
 ```
 in:inbox is:unread newer_than:<N>h -label:<label-prefix>Action -label:<label-prefix>FYI -label:<label-prefix>Newsletter -label:<label-prefix>Spam
 ```
 
-Limit 100. For each thread returned, call `mcp__gmail__get_thread` to fetch headers + the latest message body. Build a candidate list with:
+Limit 100. For each thread returned, call `mcp__claude_ai_Gmail__get_thread` to fetch headers + the latest message body. Build a candidate list with:
 
 - `thread_id`, `from`, `subject`, `snippet`, `last_message_ts`, `is_self_reply` (whether the most recent message was from the authenticated user)
 
@@ -87,7 +87,7 @@ Default to `FYI` when confidence < 0.6 — when unsure, surface (do not drop) bu
 
 ### 4. Apply Gmail labels
 
-For each classified thread, call `mcp__gmail__label_thread`:
+For each classified thread, call `mcp__claude_ai_Gmail__label_thread`:
 - action_required → `<label-prefix>Action`
 - FYI → `<label-prefix>FYI`
 - newsletter → `<label-prefix>Newsletter`
@@ -100,12 +100,12 @@ Labels are visible-only to the operator's Gmail account — no recipient-visible
 For each `action_required` thread:
 
 - Search the DB for a row with the same `Source` (Gmail thread permalink)
-- If found → `mcp__notion__update_page` (Last update / Age / Priority / Snippet)
-- If not → `mcp__notion__create_page` with the schema above
+- If found → `mcp__claude_ai_Notion__notion-update-page` (Last update / Age / Priority / Snippet)
+- If not → `mcp__claude_ai_Notion__notion-create-pages` with the schema above
 
 The Gmail thread permalink format: `https://mail.google.com/mail/u/0/#inbox/<thread_id>`.
 
-**Hook behavior:** the plugin's `PreToolUse(mcp__notion__create_page)` hook fires on the first row creation per run — asks once "About to upsert N inbox rows. Proceed?". In cron mode set `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` to bypass + write only an audit log entry (`~/.claude-code-toolkit/audit/inbox-triage-YYYY-MM-DD.jsonl`).
+**Hook behavior:** the plugin's `PreToolUse(mcp__claude_ai_Notion__notion-create-pages)` hook fires on the first row creation per run — asks once "About to upsert N inbox rows. Proceed?". In cron mode set `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` to bypass + write only an audit log entry (`~/.claude-code-toolkit/audit/inbox-triage-YYYY-MM-DD.jsonl`).
 
 ### 6. Output
 
@@ -133,7 +133,7 @@ See `docs/cron-setup.md` for the full plist example.
 - **Cold-outreach false-positive as action_required**: aggressive cold sales templates often phrase a CTA as a question. Add a hard demote rule: when sender domain has appeared > 3× in the last 30 days with the same subject pattern, downgrade to spam-like
 - **Self-reply detection drift**: if the operator uses a separate sender alias (e.g. `me+notes@gmail.com`), `is_self_reply` may miss. Treat any sender matching the authenticated address book as self
 - **Label limit**: Gmail caps labels at 10,000 per account — practically not an issue but the create_label call should be idempotent (skip if exists). The pre-flight `list_labels` covers this
-- **Notion DB schema drift**: same as blocker-radar — pre-flight `mcp__notion__fetch` validation is mandatory
+- **Notion DB schema drift**: same as blocker-radar — pre-flight `mcp__claude_ai_Notion__notion-fetch` validation is mandatory
 
 ## Tone
 

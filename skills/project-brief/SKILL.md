@@ -92,7 +92,7 @@ prompt: |
 
 Show the synthesizer's result to the user as-is. Do not post-process — the synthesizer already enforces the format.
 
-(Optional) If the user asks to "save to Notion", call `mcp__notion__create_page`. Ask the user for the parent page. This path triggers the plugin hook (`PreToolUse(mcp__notion__create_page)`) which prompts once for confirmation before proceeding.
+(Optional) If the user asks to "save to Notion", call `mcp__claude_ai_Notion__notion-create-pages`. Ask the user for the parent page. This path triggers the plugin hook (`PreToolUse(mcp__claude_ai_Notion__notion-create-pages)`) which prompts once for confirmation before proceeding.
 
 ## Pitfalls
 

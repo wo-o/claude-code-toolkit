@@ -34,8 +34,8 @@ Prints the number of rows added + the Notion URL of each row. One-line console s
 
 ### 2. Collect Slack messages
 
-Call `mcp__slack__get_channel_history`:
-- `channel`: the input channel's ID (resolve name → ID via `mcp__slack__list_channels`)
+Call `mcp__claude_ai_Slack__slack_read_channel`:
+- `channel`: the input channel's ID (resolve name → ID via `mcp__claude_ai_Slack__slack_search_channels`)
 - `oldest`: Unix timestamp for 00:00 KST on the input date
 - `latest`: Unix timestamp for 23:59 KST on the input date
 - `limit`: 200
@@ -52,14 +52,14 @@ Classify the N collected messages with the LLM:
 Keep decisions only — drop chatter and questions.
 
 Attach the following metadata to each decision:
-- `Author`: resolve user_id → display_name via `mcp__slack__get_user_info`
+- `Author`: resolve user_id → display_name via `mcp__claude_ai_Slack__slack_read_user_profile`
 - `Time`: ISO 8601 message timestamp
 - `Context (one line)`: a one-line summary of the decision's background, drawn from 1-2 prior messages in the same thread or 1 prior message in the channel
 - `Slack permalink`: format `https://<workspace>.slack.com/archives/<channel-id>/p<ts>`
 
 ### 4. Add Notion DB rows
 
-For each decision, call `mcp__notion__create_page`:
+For each decision, call `mcp__claude_ai_Notion__notion-create-pages`:
 - `parent`: `database_id` = the input DB ID
 - `properties`:
   - `Title` (title): one-line summary of the decision (≤ 50 chars)
@@ -69,7 +69,7 @@ For each decision, call `mcp__notion__create_page`:
   - `Slack Link` (url): Slack permalink
 - `children`: full text of the decision (paragraph block)
 
-**Hook behavior:** the plugin's `PreToolUse(mcp__notion__create_page)` hook fires on the first row creation — asks the user once "About to add N rows to the Notion DB. Proceed?". In cron mode, set `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` to bypass the hook and only record an audit log entry (audit log path = `~/.claude-code-toolkit/audit/decision-log-YYYY-MM-DD.jsonl`).
+**Hook behavior:** the plugin's `PreToolUse(mcp__claude_ai_Notion__notion-create-pages)` hook fires on the first row creation — asks the user once "About to add N rows to the Notion DB. Proceed?". In cron mode, set `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` to bypass the hook and only record an audit log entry (audit log path = `~/.claude-code-toolkit/audit/decision-log-YYYY-MM-DD.jsonl`).
 
 ### 5. Output
 
@@ -114,7 +114,7 @@ Key talking point: "Normally a daily 18:00 cron does this automatically. For the
 
 - **Slack timezone confusion**: `oldest`/`latest` are Unix timestamps (UTC). For `--date 2026-04-26`, convert KST 00:00-23:59 to UTC before passing.
 - **Decision/chatter LLM classification too loose**: false positives (chatter classified as decisions) flood the Notion DB with noise. Force this in the system prompt: "A decision = an explicit decision verb (`finalize/decide/confirm/pick`) or an approval reaction (:white_check_mark: :approved:)".
-- **Notion DB schema drift**: if the DB columns or types change, `create_page` fails. On the first call, run `mcp__notion__fetch <db-id>` once to validate the schema before proceeding.
+- **Notion DB schema drift**: if the DB columns or types change, `create_page` fails. On the first call, run `mcp__claude_ai_Notion__notion-fetch <db-id>` once to validate the schema before proceeding.
 - **In cron mode, the hook prompt blocks**: use `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` to bypass the hook and only record the audit log. The plugin checks this env var in hooks.json.
 
 ## Tone

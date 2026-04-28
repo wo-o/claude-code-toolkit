@@ -56,7 +56,7 @@ Console report format (markdown to stdout):
 
 ### 2. Pull Sent mail
 
-Call `mcp__gmail__search_threads` with the query:
+Call `mcp__claude_ai_Gmail__search_threads` with the query:
 
 ```
 in:sent newer_than:<max-tier + 7>d -label:<ignore-label-1> -label:<ignore-label-2> ...
@@ -64,7 +64,7 @@ in:sent newer_than:<max-tier + 7>d -label:<ignore-label-1> -label:<ignore-label-
 
 `max-tier + 7` provides a buffer so threads that *just* passed the Cold tier still show up. Limit 200.
 
-For each returned thread, call `mcp__gmail__get_thread` to inspect the messages list.
+For each returned thread, call `mcp__claude_ai_Gmail__get_thread` to inspect the messages list.
 
 ### 3. Detect "still waiting" threads
 
@@ -92,11 +92,11 @@ For each surviving thread, extract:
 
 If `--notion-mirror-page-id` is set:
 
-- Fetch the existing page contents via `mcp__notion__fetch`
+- Fetch the existing page contents via `mcp__claude_ai_Notion__notion-fetch`
 - Replace the body with the new markdown report (single-page overwrite — there is no DB upsert)
-- Call `mcp__notion__update_page`
+- Call `mcp__claude_ai_Notion__notion-update-page`
 
-**Hook behavior:** when `--notion-mirror-page-id` is passed, the plugin's `PreToolUse(mcp__notion__update_page)` hook fires once per run — asks "About to overwrite the follow-up radar page. Proceed?". In cron mode set `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` to bypass + audit log (`~/.claude-code-toolkit/audit/follow-up-radar-YYYY-MM-DD.jsonl`).
+**Hook behavior:** when `--notion-mirror-page-id` is passed, the plugin's `PreToolUse(mcp__claude_ai_Notion__notion-update-page)` hook fires once per run — asks "About to overwrite the follow-up radar page. Proceed?". In cron mode set `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` to bypass + audit log (`~/.claude-code-toolkit/audit/follow-up-radar-YYYY-MM-DD.jsonl`).
 
 ### 6. Output
 

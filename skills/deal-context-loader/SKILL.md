@@ -65,25 +65,25 @@ Prints a 5-minute brief in markdown (no writes):
 ### 2. Verify HubSpot MCP tools (drift defense)
 
 Before the first call, confirm tool exposure:
-- `mcp__hubspot__get_deal` or `mcp__hubspot__search_deals`
-- `mcp__hubspot__get_contact`
+- `mcp__claude_ai_HubSpot__get_deal` or `mcp__claude_ai_HubSpot__search_deals`
+- `mcp__claude_ai_HubSpot__get_contact`
 
 Abort immediately if tool names differ.
 
 ### 3. Collect HubSpot deal info
 
 If `--deal-id`:
-1. `mcp__hubspot__get_deal` to fetch the deal object
+1. `mcp__claude_ai_HubSpot__get_deal` to fetch the deal object
 2. Expand associated contacts / company / activities (associated objects)
 
 If `--company`:
-1. `mcp__hubspot__search_companies` to match the company
+1. `mcp__claude_ai_HubSpot__search_companies` to match the company
 2. Fetch the company's open deals
 3. Auto-select the deal with the most recent last activity (if multiple, prompt with the list)
 
 ### 4. Search internal Slack mentions
 
-`mcp__slack__search_messages`:
+`mcp__claude_ai_Slack__slack_search_public_and_private`:
 - query: company name + the 1-2 main contact names (pulled from HubSpot)
 - after: input date - `--slack-window-days`
 - before: today

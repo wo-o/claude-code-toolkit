@@ -1,7 +1,7 @@
 ---
 name: slack-scout
 description: Scouts Slack for messages and decisions related to a project. Read-only access. Returns a structured summary of recent activity. Use when the main agent needs Slack context without polluting its own conversation.
-tools: mcp__slack__list_channels, mcp__slack__search_messages, mcp__slack__get_channel_history, mcp__slack__get_user_info
+tools: mcp__claude_ai_Slack__slack_search_channels, mcp__claude_ai_Slack__slack_search_public_and_private, mcp__claude_ai_Slack__slack_read_channel, mcp__claude_ai_Slack__slack_read_user_profile
 ---
 
 # slack-scout

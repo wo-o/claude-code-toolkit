@@ -1,7 +1,7 @@
 ---
 name: ticket-classifier
-description: Classifies a Slack support message into one of [bug, feature_request, usage_question]. Slack read-only access. Use when ticket-triage-router needs to categorize an incoming support message. Tool ID `mcp__slack__get_message` is pending `docs/mcp-setup.md` dry-run; if absent, fall back to `mcp__slack__get_channel_history` with channel+ts (already in allowlist).
-tools: mcp__slack__get_message, mcp__slack__get_channel_history
+description: Classifies a Slack support message into one of [bug, feature_request, usage_question]. Slack read-only access. Use when ticket-triage-router needs to categorize an incoming support message. Tool ID `mcp__claude_ai_Slack__slack_get_message` is pending `docs/mcp-setup.md` dry-run; if absent, fall back to `mcp__claude_ai_Slack__slack_read_channel` with channel+ts (already in allowlist).
+tools: mcp__claude_ai_Slack__slack_get_message, mcp__claude_ai_Slack__slack_read_channel
 ---
 
 # ticket-classifier

@@ -54,7 +54,7 @@ prompt: |
   Include confidence and a 1-2 sentence rationale.
 ```
 
-ticket-classifier holds only `mcp__slack__get_message` (or equivalent) read-only access. Returns one classification + confidence + rationale.
+ticket-classifier holds only `mcp__claude_ai_Slack__slack_get_message` (or equivalent) read-only access. Returns one classification + confidence + rationale.
 
 ### 3. Run the ticket-draft-writer subagent
 
@@ -67,7 +67,7 @@ prompt: |
   Message body: <text fetched by classifier>
   Category: <classifier result>
 
-  Search Notion (mcp__notion__search) per category:
+  Search Notion (mcp__claude_ai_Notion__notion-search) per category:
   - bug: search the Bugs DB or incident pages for the same symptom. If found, link + cite status. If not, prompt for repro info.
   - feature_request: search the Roadmap/Backlog page. If already on the roadmap, cite the schedule. If not, reply "Will review and respond".
   - usage_question: search FAQ/Docs pages, cite the 1-2 closest pages.
@@ -76,7 +76,7 @@ prompt: |
   No auto-posting — draft only.
 ```
 
-ticket-draft-writer holds only `mcp__notion__search` read-only access. **Zero write tools.**
+ticket-draft-writer holds only `mcp__claude_ai_Notion__notion-search` read-only access. **Zero write tools.**
 
 ### 4. Combine results
 

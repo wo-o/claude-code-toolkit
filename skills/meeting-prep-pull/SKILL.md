@@ -11,7 +11,7 @@ The skill is on-demand only (not a scheduled cron) — it pulls just-in-time bef
 
 ## Input
 
-- `--event-id <id>` (optional) — Google Calendar event ID. If omitted, the skill calls `mcp__google_calendar__list_events` for the next 24 hours on the primary calendar and picks the soonest one. If multiple within the next 2h → AskUserQuestion
+- `--event-id <id>` (optional) — Google Calendar event ID. If omitted, the skill calls `mcp__claude_ai_Google_Calendar__list_events` for the next 24 hours on the primary calendar and picks the soonest one. If multiple within the next 2h → AskUserQuestion
 - `--lookback-days N` (optional, default 14) — Gmail and Notion lookback window
 - `--notion-parent-id <id>` (optional, falls back to env `CLAUDE_CODE_TOOLKIT_PREP_PARENT_ID`) — parent page under which the pre-read is created
 - `--internal-domain <domain>` (optional, falls back to env `CLAUDE_CODE_TOOLKIT_PREP_INTERNAL_DOMAIN`) — operator's own domain (used to distinguish external attendees from teammates)
@@ -67,13 +67,13 @@ Pre-read page format:
 
 ### 1. Parse input + pick the event
 
-- If `--event-id` missing → call `mcp__google_calendar__list_events` for `primary` calendar, `time_min=now`, `time_max=now+24h`
+- If `--event-id` missing → call `mcp__claude_ai_Google_Calendar__list_events` for `primary` calendar, `time_min=now`, `time_max=now+24h`
 - If 0 events → exit with "No meetings in the next 24 hours"
 - If 1 event → use it
 - If 2+ events with the soonest within 2h → use the soonest
 - Otherwise → AskUserQuestion with the list of upcoming events
 
-Call `mcp__google_calendar__get_event` for the chosen event_id to fetch full details: summary, description, start, end, location, attendees.
+Call `mcp__claude_ai_Google_Calendar__get_event` for the chosen event_id to fetch full details: summary, description, start, end, location, attendees.
 
 ### 2. Classify attendees
 
@@ -85,7 +85,7 @@ If 0 external attendees → exit with "Internal-only meeting — pre-read is not
 
 ### 3. Gmail context per external attendee
 
-For each external attendee, invoke `mcp__gmail__search_threads`:
+For each external attendee, invoke `mcp__claude_ai_Gmail__search_threads`:
 
 ```
 from:<attendee_email> OR to:<attendee_email>  newer_than:<lookback-days>d
@@ -93,7 +93,7 @@ from:<attendee_email> OR to:<attendee_email>  newer_than:<lookback-days>d
 
 Limit 20 per attendee. Parallelize up to 5 attendees in a single Task batch.
 
-For each thread, call `mcp__gmail__get_thread` and capture:
+For each thread, call `mcp__claude_ai_Gmail__get_thread` and capture:
 - `subject`, `last_message_ts`, `last_message_snippet`, `permalink`
 
 Sort by `last_message_ts` descending and keep top 3 per attendee.
@@ -141,12 +141,12 @@ The synthesizer is read-only — it never writes to Notion / Gmail / Slack. Patt
 
 ### 6. Create the Notion pre-read page
 
-Call `mcp__notion__create_page`:
+Call `mcp__claude_ai_Notion__notion-create-pages`:
 - `parent`: `page_id` = the input parent page ID
 - `properties`: `title` = `Pre-Read — <event title> — YYYY-MM-DD HH:MM`
 - `children`: heading_2 + bulleted_list_item blocks per the body format above
 
-**Hook behavior:** the plugin's `PreToolUse(mcp__notion__create_page)` hook fires once per run — asks "About to create a meeting pre-read page in Notion. Proceed?". In cron mode (rare for this on-demand skill) set `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` to bypass + audit log (`~/.claude-code-toolkit/audit/meeting-prep-YYYY-MM-DD.jsonl`).
+**Hook behavior:** the plugin's `PreToolUse(mcp__claude_ai_Notion__notion-create-pages)` hook fires once per run — asks "About to create a meeting pre-read page in Notion. Proceed?". In cron mode (rare for this on-demand skill) set `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` to bypass + audit log (`~/.claude-code-toolkit/audit/meeting-prep-YYYY-MM-DD.jsonl`).
 
 ### 7. Output
 

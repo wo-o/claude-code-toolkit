@@ -35,7 +35,7 @@ Same topic, two homes — and the homes do not know each other. The Notion page 
 
 ### 2. Collect Slack threads
 
-Invoke slack-scout once per channel with the `--since` window. Then, for each thread surfaced (≥3 messages, ≥2 distinct authors), call `mcp__slack__get_channel_history` with the thread `ts` to fetch full replies.
+Invoke slack-scout once per channel with the `--since` window. Then, for each thread surfaced (≥3 messages, ≥2 distinct authors), call `mcp__claude_ai_Slack__slack_read_channel` with the thread `ts` to fetch full replies.
 
 Skip threads with <3 messages or single-author monologues — those rarely produce decision content worth cross-linking.
 
@@ -91,12 +91,12 @@ Keep only matches with score ≥ `--threshold`. Discard the rest.
 
 **Default mode** — for each surviving match, write both directions:
 
-- Slack: post a thread reply via `mcp__slack__post_message` (in-thread, as a bot) with text:
+- Slack: post a thread reply via `mcp__claude_ai_Slack__slack_send_message` (in-thread, as a bot) with text:
   ```
   📚 Related Notion: <page title> — <URL>
   Reply with :x: to remove this suggestion.
   ```
-- Notion: update the page via `mcp__notion__update_page`, appending to a "Related discussions" section a bullet:
+- Notion: update the page via `mcp__claude_ai_Notion__notion-update-page`, appending to a "Related discussions" section a bullet:
   ```
   - <YYYY-MM-DD> #<channel> thread — <permalink>
   ```
@@ -104,7 +104,7 @@ Keep only matches with score ≥ `--threshold`. Discard the rest.
 
 **`--review-mode`** — instead of writing, append match candidates to a Notion review page (`Knowledge Graph Review — YYYY-MM-DD`) with score + rationale + both URLs. The operator manually applies (or rejects) the links. Use this for the first 1-2 weeks to calibrate the threshold.
 
-**Hook behavior:** the plugin's `PreToolUse(mcp__notion__update_page)` and `PreToolUse(mcp__slack__post_message)` hooks fire — Slack post is **never bypassed** even in cron mode (a wrong public bot reply is not silently recoverable). Notion updates can be bypassed with `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` after the first successful run signs off the threshold; audit log lives at `~/.claude-code-toolkit/audit/knowledge-graph-YYYY-MM-DD.jsonl`.
+**Hook behavior:** the plugin's `PreToolUse(mcp__claude_ai_Notion__notion-update-page)` and `PreToolUse(mcp__claude_ai_Slack__slack_send_message)` hooks fire — Slack post is **never bypassed** even in cron mode (a wrong public bot reply is not silently recoverable). Notion updates can be bypassed with `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` after the first successful run signs off the threshold; audit log lives at `~/.claude-code-toolkit/audit/knowledge-graph-YYYY-MM-DD.jsonl`.
 
 ### 8. Output
 

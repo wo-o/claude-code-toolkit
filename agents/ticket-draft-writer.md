@@ -1,7 +1,7 @@
 ---
 name: ticket-draft-writer
 description: Drafts a support ticket answer based on classifier output. Searches Notion (Bugs DB / Roadmap / FAQ) depending on category. Read-only — no auto-posting. Use after ticket-classifier returns a category.
-tools: mcp__notion__search, mcp__notion__fetch
+tools: mcp__claude_ai_Notion__notion-search, mcp__claude_ai_Notion__notion-fetch
 ---
 
 # ticket-draft-writer
@@ -54,19 +54,19 @@ Confidence: <confidence attached by classifier>
 ## Per-category search strategy
 
 ### bug
-1. `mcp__notion__search` over Bugs DB / incident pages (use keywords from the message body, e.g. "NFT mint fails")
+1. `mcp__claude_ai_Notion__notion-search` over Bugs DB / incident pages (use keywords from the message body, e.g. "NFT mint fails")
 2. If a same-symptom page exists:
    - Unresolved → "Currently under review. Track progress at <linked-page>."
    - Resolved → "This has already been resolved. Please see the patch notes at <linked-page>."
 3. 0 search results → "This appears to be the first report of this symptom. Please share repro steps and we will register it in our internal tracker."
 
 ### feature_request
-1. `mcp__notion__search` over "Roadmap" or "feature plan" pages
+1. `mcp__claude_ai_Notion__notion-search` over "Roadmap" or "feature plan" pages
 2. If the user's request appears, cite the schedule
 3. Otherwise → "We will review internally and respond. Current priorities are <X>." (X drawn from search results)
 
 ### usage_question
-1. `mcp__notion__search` (FAQ/docs pages)
+1. `mcp__claude_ai_Notion__notion-search` (FAQ/docs pages)
 2. Fetch the 1-2 closest pages and quote the relevant section
 3. Otherwise → "This is not explicitly documented in the official docs. Please refer to <linked-page> or share more details."
 

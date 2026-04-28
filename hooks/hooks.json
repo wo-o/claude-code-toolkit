@@ -2,11 +2,11 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "mcp__notion__create_page",
+        "matcher": "mcp__claude_ai_Notion__notion-(create|update|append|delete)",
         "hooks": [
           {
             "type": "command",
-            "command": "if [ \"${CLAUDE_CODE_TOOLKIT_CRON_MODE:-0}\" = \"1\" ]; then mkdir -p \"${HOME}/.claude-code-toolkit/audit\" && printf '{\"ts\":\"%s\",\"hook\":\"PreToolUse\",\"matcher\":\"mcp__notion__create_page\",\"mode\":\"cron_bypass\"}\\n' \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\" >> \"${HOME}/.claude-code-toolkit/audit/decision-log-$(date -u +%Y-%m-%d).jsonl\"; exit 0; fi; printf '\\n[claude-code-toolkit] decision-log-keeper is about to add a row to a Notion DB.\\n  bypass: CLAUDE_CODE_TOOLKIT_CRON_MODE=1\\nPress Enter to continue, Ctrl+C to cancel: ' >&2 && read -r _ </dev/tty"
+            "command": "if [ \"${CLAUDE_CODE_TOOLKIT_CRON_MODE:-0}\" = \"1\" ]; then mkdir -p \"${HOME}/.claude-code-toolkit/audit\" && printf '{\"ts\":\"%s\",\"hook\":\"PreToolUse\",\"matcher\":\"mcp__claude_ai_Notion__notion-write\",\"mode\":\"cron_bypass\"}\\n' \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\" >> \"${HOME}/.claude-code-toolkit/audit/decision-log-$(date -u +%Y-%m-%d).jsonl\"; exit 0; fi; printf '\\n[claude-code-toolkit] About to write to Notion (create / update / append / delete).\\n  bypass: CLAUDE_CODE_TOOLKIT_CRON_MODE=1\\nPress Enter to continue, Ctrl+C to cancel: ' >&2 && read -r _ </dev/tty"
           }
         ]
       }

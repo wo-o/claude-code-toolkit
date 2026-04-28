@@ -67,7 +67,7 @@ Format of the Notion page body:
 
 ### 2. Collect thread messages
 
-Call `mcp__slack__get_channel_history`:
+Call `mcp__claude_ai_Slack__slack_read_channel`:
 - `channel`: extracted channel-id
 - `oldest`: thread_ts (parent message time)
 - `latest`: thread_ts + 30 days (to cover all thread replies)
@@ -75,7 +75,7 @@ Call `mcp__slack__get_channel_history`:
 
 Or use a thread-dedicated tool if exposed (check the Slack Connector's tool name in `claude /mcp` output).
 
-For each message, resolve user_id → display_name with `mcp__slack__get_user_info` (cached).
+For each message, resolve user_id → display_name with `mcp__claude_ai_Slack__slack_read_user_profile` (cached).
 
 ### 3. LLM classification
 
@@ -96,12 +96,12 @@ If `--title` is missing, generate a title (≤ 50 chars) using the LLM with the 
 
 ### 5. Create Notion page
 
-Call `mcp__notion__create_page`:
+Call `mcp__claude_ai_Notion__notion-create-pages`:
 - `parent`: `page_id` = the input parent page ID
 - `properties`: `title` = title
 - `children`: combination of paragraph / heading_2 / bulleted_list_item / to_do blocks per the body format above
 
-**Hook behavior:** the plugin's `PreToolUse(mcp__notion__create_page)` hook fires — asks the user once "About to create a new Notion page. Proceed?". **In this release this is interactive-confirm only — bypass not allowed** (the current hook only writes audit logs to `decision-log-YYYY-MM-DD.jsonl`, so a spec-from-thread bypass would mix into another skill's audit trail). Cron automation will be considered after caller-aware audit log separation lands.
+**Hook behavior:** the plugin's `PreToolUse(mcp__claude_ai_Notion__notion-create-pages)` hook fires — asks the user once "About to create a new Notion page. Proceed?". **In this release this is interactive-confirm only — bypass not allowed** (the current hook only writes audit logs to `decision-log-YYYY-MM-DD.jsonl`, so a spec-from-thread bypass would mix into another skill's audit trail). Cron automation will be considered after caller-aware audit log separation lands.
 
 ### 6. Output
 

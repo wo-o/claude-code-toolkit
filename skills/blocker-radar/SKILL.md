@@ -22,7 +22,7 @@ A teammate types "blocked — I don't have access" at 14:00 Tuesday in `#eng`. N
 - Notion DB: <DB URL>
 ```
 
-The Notion DB schema (one-time setup; the skill validates with `mcp__notion__fetch` before writing):
+The Notion DB schema (one-time setup; the skill validates with `mcp__claude_ai_Notion__notion-fetch` before writing):
 
 | Column | Type | Content |
 |---|---|---|
@@ -43,7 +43,7 @@ The Notion DB schema (one-time setup; the skill validates with `mcp__notion__fet
 - `--since` missing → yesterday 00:00 KST
 - `--channels` missing AND env missing → AskUserQuestion
 - `--notion-db-id` missing AND env missing → AskUserQuestion
-- Validate the Notion DB schema with `mcp__notion__fetch` once. If columns are missing, exit and print the expected schema for the operator to add manually
+- Validate the Notion DB schema with `mcp__claude_ai_Notion__notion-fetch` once. If columns are missing, exit and print the expected schema for the operator to add manually
 
 ### 2. Run slack-scout for each channel
 
@@ -104,9 +104,9 @@ For each surviving blocker:
 
 - Search the DB for existing rows with the same `Person` + `Topic` (open status). If found → `update_page` (Last update / Age / Status). If not → `create_page`
 
-Call `mcp__notion__create_page` or `mcp__notion__update_page` accordingly.
+Call `mcp__claude_ai_Notion__notion-create-pages` or `mcp__claude_ai_Notion__notion-update-page` accordingly.
 
-**Hook behavior:** the plugin's `PreToolUse(mcp__notion__create_page)` hook fires on the first row creation per run — asks once "About to upsert N blocker rows to Notion. Proceed?". In cron mode set `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` to bypass and write only an audit log entry (`~/.claude-code-toolkit/audit/blocker-radar-YYYY-MM-DD.jsonl`).
+**Hook behavior:** the plugin's `PreToolUse(mcp__claude_ai_Notion__notion-create-pages)` hook fires on the first row creation per run — asks once "About to upsert N blocker rows to Notion. Proceed?". In cron mode set `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` to bypass and write only an audit log entry (`~/.claude-code-toolkit/audit/blocker-radar-YYYY-MM-DD.jsonl`).
 
 ### 8. Output
 
@@ -134,7 +134,7 @@ See `docs/cron-setup.md` for the full plist example.
 - **Pattern filter false negatives**: subtle blockers ("this isn't quite working…") slip past. Accept this — false-negative is preferable to drowning the manager in false-positive
 - **Same person, multiple topics in one day**: grouping by topic-overlap is fragile. When in doubt, create separate rows (over-surfacing is acceptable; merging too aggressively is not)
 - **Ticket-classifier mis-tagging venting as help_request**: tune the classifier prompt with explicit examples. Venting + an emoji is still venting unless there is a question mark or explicit ask
-- **Notion DB schema drift**: if columns are renamed, every run fails. The pre-flight `mcp__notion__fetch` validation catches this — don't skip it
+- **Notion DB schema drift**: if columns are renamed, every run fails. The pre-flight `mcp__claude_ai_Notion__notion-fetch` validation catches this — don't skip it
 - **Stale rows accumulate**: rows whose blockers have been resolved silently are not auto-closed. Consider a separate `blocker-radar --close-resolved` pass that scans recent thread replies for resolution language and bumps Status → Resolved (out of scope for v1)
 
 ## Tone

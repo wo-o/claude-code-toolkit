@@ -107,12 +107,12 @@ Add them as a separate section — these are confirmation signals, not authorita
 
 ### 7. Create the weekly Notion page
 
-Call `mcp__notion__create_page`:
+Call `mcp__claude_ai_Notion__notion-create-pages`:
 - `parent`: `page_id` = the input parent page ID
 - `properties`: `title` = `Weekly Shipped — YYYY-Www`
 - `children`: heading_2 + bulleted_list_item blocks per the body format above
 
-**Hook behavior:** the plugin's `PreToolUse(mcp__notion__create_page)` hook fires once. In cron mode set `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` to bypass and write only an audit log entry (`~/.claude-code-toolkit/audit/weekly-shipped-YYYY-Www.jsonl`).
+**Hook behavior:** the plugin's `PreToolUse(mcp__claude_ai_Notion__notion-create-pages)` hook fires once. In cron mode set `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` to bypass and write only an audit log entry (`~/.claude-code-toolkit/audit/weekly-shipped-YYYY-Www.jsonl`).
 
 ### 8. Output
 

@@ -61,7 +61,7 @@ This plugin does not register external integrations directly. We use Anthropic's
 
 - One toggle in your claude.ai account → automatically exposed across CLI / Desktop / Mobile
 - OAuth is handled by Anthropic infrastructure, so no tokens are stored on the user's machine
-- Skill code stays unchanged — the tool IDs (`mcp__slack__*`, `mcp__notion__*`, `mcp__hubspot__*`, `mcp__gmail__*`, `mcp__google_calendar__*`) remain identical
+- Skill code stays unchanged — the tool IDs (`mcp__claude_ai_Slack__slack_*`, `mcp__claude_ai_Notion__*`, `mcp__claude_ai_HubSpot__*`, `mcp__claude_ai_Gmail__*`, `mcp__claude_ai_Google_Calendar__*`) remain identical
 - **Gmail outbound is draft-only by design** — the Connector exposes `create_draft` but not `send_message`. Drafts land in the operator's Gmail Drafts folder and are never sent until the operator clicks send in the Gmail UI. This eliminates the "wrong message went out" risk that exists for Slack `post_message`.
 
 Per-skill Connector requirements:
@@ -81,7 +81,7 @@ Enablement steps:
 3. Verify exposure from the CLI:
    ```
    claude /mcp
-   # Confirm mcp__slack__*, mcp__notion__*, mcp__hubspot__*, mcp__gmail__*, mcp__google_calendar__* are exposed
+   # Confirm mcp__claude_ai_Slack__slack_*, mcp__claude_ai_Notion__*, mcp__claude_ai_HubSpot__*, mcp__claude_ai_Gmail__*, mcp__claude_ai_Google_Calendar__* are exposed
    ```
 
 > **GitHub is intentionally excluded.** Anthropic's official GitHub Connector is read-only (file/branch lookup only — no PR diff/comment, no Issue write), and the demo skills that performed PR writes (pr-pattern-auditor / pr-storybook) have been removed in v1. The GitHub automation workflow will be split out into a separate trial repo.
@@ -178,7 +178,7 @@ Per-skill plist + systemd timer examples in `docs/cron-setup.md`.
 | `/mcp` does not list the server | Connector toggle missing, or claude.ai not authenticated | Enable at https://claude.ai/customize/connectors and restart Claude Code |
 | Slack `chat:write` denied | Workspace admin has not approved | Request Connector approval from admin and re-run OAuth |
 | `Bash(rm -rf *)` blocked | Baseline working as intended (not overridden) | Intended behavior — use safe tools like `trash` |
-| User confirmation prompt right before decision-log-keeper Notion write | Plugin-specific hook (`PreToolUse(mcp__notion__create_page)`) | Approve with y, or disable the hook: `--allowedTools "mcp__notion__create_page"` |
+| User confirmation prompt right before decision-log-keeper Notion write | Plugin-specific hook (`PreToolUse(mcp__claude_ai_Notion__notion-create-pages)`) | Approve with y, or disable the hook: `--allowedTools "mcp__claude_ai_Notion__notion-create-pages"` |
 | In CI/cron, hook prompt blocks (`read -r _ </dev/tty` waiting) | Plugin hook is requesting interactive confirmation | All scheduled skills support `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` (per-skill audit logs: `decision-log-YYYY-MM-DD.jsonl`, `weekly-shipped-YYYY-Www.jsonl`, `blocker-radar-YYYY-MM-DD.jsonl`, `knowledge-graph-YYYY-MM-DD.jsonl`, `okr-sync-YYYY-Www.jsonl`, `zombie-killer-YYYY-MM-DD.jsonl`, `inbox-triage-YYYY-MM-DD.jsonl`, `follow-up-radar-YYYY-MM-DD.jsonl`). spec-from-thread and meeting-prep-pull are interactive-only in this release (audit log not separated — see §Security model) |
 | `knowledge-graph-builder` over-linking | Threshold too low, false positives | Raise `--threshold` (default 0.75 — never below 0.6) or run `--review-mode` for 1-2 weeks before enabling auto-link |
 | `inbox-zero-triage` over-classifies as `action_required` | LLM confidence too low default to action | Raise the classifier confidence floor in the skill (currently 0.6 → FYI fallback). Add domain-specific examples to the ticket-classifier subagent |
@@ -191,11 +191,11 @@ Per-skill plist + systemd timer examples in `docs/cron-setup.md`.
 
 - The org baseline's deny rules + sandbox + PreToolUse blocks on `rm -rf` / `git push main` are **never overridden** — they keep working as-is.
 - Plugin-specific hooks (`hooks/hooks.json`) only add coverage in areas the baseline does not define:
-  - `PreToolUse(mcp__notion__create_page)` — one user confirmation right before adding a Notion DB row (in cron mode, audit log only)
-  - `PreToolUse(mcp__notion__update_page)` — same shape, fires for upserts (blocker-radar, okr-sync, knowledge-graph-builder, thread-zombie-killer)
-  - `PreToolUse(mcp__slack__post_message)` — **never bypassed by `CRON_MODE`**. A wrong public Slack message is not silently recoverable. knowledge-graph-builder gates Slack posts here
-  - `mcp__gmail__create_draft` is **NOT gated** — Gmail drafts land in the operator's Drafts folder and never leave the account until the operator presses send in the Gmail UI. The Connector intentionally has no `send_message` API, so the "wrong message went out" risk for Gmail is zero by construction
-  - `mcp__gmail__label_thread` / `mcp__gmail__label_message` are **NOT gated** — labels are visible only to the authenticated Gmail account and can be removed with one click
+  - `PreToolUse(mcp__claude_ai_Notion__notion-create-pages)` — one user confirmation right before adding a Notion DB row (in cron mode, audit log only)
+  - `PreToolUse(mcp__claude_ai_Notion__notion-update-page)` — same shape, fires for upserts (blocker-radar, okr-sync, knowledge-graph-builder, thread-zombie-killer)
+  - `PreToolUse(mcp__claude_ai_Slack__slack_send_message)` — **never bypassed by `CRON_MODE`**. A wrong public Slack message is not silently recoverable. knowledge-graph-builder gates Slack posts here
+  - `mcp__claude_ai_Gmail__create_draft` is **NOT gated** — Gmail drafts land in the operator's Drafts folder and never leave the account until the operator presses send in the Gmail UI. The Connector intentionally has no `send_message` API, so the "wrong message went out" risk for Gmail is zero by construction
+  - `mcp__claude_ai_Gmail__label_thread` / `mcp__claude_ai_Gmail__label_message` are **NOT gated** — labels are visible only to the authenticated Gmail account and can be removed with one click
 - The three demo picks (decision-log-keeper, ticket-triage-router, spec-from-thread) use **per-tool permission isolation** for their subagents — read-only / write are split (Pattern C). See each skill's `agents/` definition + the frontmatter `tools` allowlist. The seven scheduled skills + on-demand meeting-prep-pull reuse the same subagents (slack-scout, notion-scout, ticket-classifier, synthesizer) under the same Pattern C model — no new subagents introduced.
 - **External integrations only use Anthropic's official Connectors** — for Slack/Notion/HubSpot, OAuth tokens are managed by Anthropic infrastructure and no secret is stored on the user's disk. The plugin ships no `.mcp.json` of its own, so there is no environment-variable PAT injection surface.
 - **No third-party broker (Composio, etc.):** the Google Drive Composio integration that shipped in v0 has been removed in v1 (avoiding the trust hop where OAuth refresh tokens get delegated to external infrastructure). Will reconsider once Anthropic's native GDrive Connector reaches GA.
