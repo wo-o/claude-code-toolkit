@@ -88,6 +88,30 @@ Enablement steps:
 
 ---
 
+## Zero-config setup (auto-resolve)
+
+Once Connectors are toggled, skills do NOT ask you for Notion DB IDs, parent page IDs, or Slack channel IDs. Each skill carries a canonical name (e.g. DB `Blockers`, page `Specs`, channel `#decisions`) and resolves it on first run via `notion-search` / `slack_search_channels`, then caches the ID at `~/.claude-code-toolkit/auto-resolve.json`.
+
+**One-time setup before first run** — create the canonical Notion resources in any workspace the Connector has access to:
+
+| Skill | Create in Notion |
+|---|---|
+| decision-log-keeper | DB `Decision Log` |
+| blocker-radar | DB `Blockers` |
+| thread-zombie-killer | DB `Open Mentions` |
+| inbox-zero-triage | DB `Inbox Triage` |
+| okr-sync | DB `OKRs` |
+| spec-from-thread | page `Specs` |
+| meeting-prep-pull | page `Meeting Prep` |
+| weekly-shipped-from-noise | page `Weekly Shipped` |
+| follow-up-radar | page `Follow-up Radar` (only if you opt-in to Notion mirror) |
+| knowledge-graph-builder | page `Knowledge Graph Review` (only used in `--review-mode`) |
+| project-brief | page `Project Briefs` (only if you opt-in to Notion save) |
+
+If a canonical name does not exist when a skill runs, the skill exits with the expected DB schema printed — create the DB / page with that schema and re-run. To override auto-resolve for a specific skill, edit `~/.claude-code-toolkit/auto-resolve.json` directly or pass the matching `--*-id` flag. Full algorithm: `docs/auto-resolve.md`.
+
+---
+
 ## Usage
 
 Each skill is invoked via `/claude-code-toolkit:<skill-name>`.

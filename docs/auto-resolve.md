@@ -64,7 +64,7 @@ The skill **never** invokes AskUserQuestion for a channel that matches a known c
 
 | Skill | Canonical Notion target | Canonical Slack target |
 |---|---|---|
-| blocker-radar | DB "Blockers" | `#help-*` | (any channel matching pattern) |
+| blocker-radar | DB "Blockers" | channels matching `#help-*` (pattern, not literal) |
 | decision-log-keeper | DB "Decision Log" | `#decisions` |
 | inbox-zero-triage | DB "Inbox Triage" | (Gmail only) |
 | thread-zombie-killer | DB "Open Mentions" | (auto-derived from mentions) |
