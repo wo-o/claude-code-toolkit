@@ -7,12 +7,13 @@ description: Take a Slack thread URL, classify each message into [decision / req
 
 When a PM debates a new feature in a Slack thread, decisions, requirements, and open questions get scattered across 50-100 messages. Hand-converting them into a Notion spec page takes 1-2 hours — so it never happens. With a single URL as input, this skill fetches + classifies + writes to Notion in one command.
 
+Zero-config: this skill auto-resolves the Notion parent page "Specs" on first run and caches the ID — see docs/auto-resolve.md.
+
 ## Input
 
 - `--thread-url <slack-permalink>` (required) — Slack thread permalink (`https://<workspace>.slack.com/archives/<channel>/p<ts>` format)
-- `--notion-parent-id <id>` (optional, falls back to env `CLAUDE_CODE_TOOLKIT_SPEC_PARENT_ID`) — Notion parent page ID
+- `--notion-parent-id <id>` (override only — defaults to auto-resolve Notion parent page "Specs". Env override: `CLAUDE_CODE_TOOLKIT_SPEC_PARENT_ID`)
 - `--title <text>` (optional) — title for the spec page being created. If missing, the LLM extracts one from the thread's first message.
-- Missing input → AskUserQuestion (never guess)
 
 ## Output
 
@@ -62,7 +63,7 @@ Format of the Notion page body:
 ### 1. Parse input
 
 - Parse `--thread-url`: extract workspace · channel-id · ts. Reject if not in this format.
-- `--notion-parent-id` missing AND env missing → AskUserQuestion
+- Notion parent page ID: auto-resolve "Specs" via the algorithm in docs/auto-resolve.md (cache-first, fall through to notion-search with page filter). Override: `--notion-parent-id <id>` or env `CLAUDE_CODE_TOOLKIT_SPEC_PARENT_ID`.
 - `--title` missing → LLM-infer in step 3
 
 ### 2. Collect thread messages
@@ -97,7 +98,7 @@ If `--title` is missing, generate a title (≤ 50 chars) using the LLM with the 
 ### 5. Create Notion page
 
 Call `mcp__claude_ai_Notion__notion-create-pages`:
-- `parent`: `page_id` = the input parent page ID
+- `parent`: `page_id` = the resolved parent page ID
 - `properties`: `title` = title
 - `children`: combination of paragraph / heading_2 / bulleted_list_item / to_do blocks per the body format above
 

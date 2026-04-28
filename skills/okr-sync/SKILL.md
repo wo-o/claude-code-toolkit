@@ -7,13 +7,14 @@ description: Match Notion OKR Key Results to Slack #wins / #shipped / #launches 
 
 Quarterly OKR rituals collapse for a reliable reason: nobody updates progress until the day before review. By that point three things have happened — half the KRs have moved without anybody updating them, the other half have not moved and nobody noticed, and the leadership review becomes an exercise in fiction. This skill closes the gap by matching evidence (Slack shipping signals + Notion Done pages) to KRs every Monday morning, writing the matches into each KR row, and surfacing KRs with zero evidence over N weeks as candidates for re-scoping or removal.
 
+Zero-config: this skill auto-resolves the Notion DB "OKRs" and Slack channels `#wins`, `#shipped`, `#launches` on first run and caches the IDs — see docs/auto-resolve.md.
+
 ## Input
 
 - `--window-weeks N` (optional, default 1) — evidence window (1 = last week)
-- `--okr-db-id <id>` (optional, falls back to env `CLAUDE_CODE_TOOLKIT_OKR_DB_ID`) — Notion OKR DB ID
-- `--evidence-channels <comma-separated>` (optional, falls back to env `CLAUDE_CODE_TOOLKIT_OKR_CHANNELS`) — channels to scan for shipping evidence (e.g. `#wins,#shipped,#launches,#product-updates`)
+- `--okr-db-id <id>` (override only — defaults to auto-resolve Notion DB "OKRs". Env override: `CLAUDE_CODE_TOOLKIT_OKR_DB_ID`)
+- `--evidence-channels <comma-separated>` (override only — defaults to auto-resolve Slack channels `#wins`, `#shipped`, `#launches`. Env override: `CLAUDE_CODE_TOOLKIT_OKR_CHANNELS`)
 - `--stale-threshold-weeks N` (optional, default 4) — flag KRs with no evidence over this many weeks
-- Missing input → AskUserQuestion (never guess)
 
 ## Output
 
@@ -42,13 +43,13 @@ The Notion OKR DB schema (one-time setup; the skill validates with `mcp__claude_
 ### 1. Parse input
 
 - `--window-weeks` clamped to [1, 13] (one-week minimum, one-quarter maximum)
-- `--okr-db-id` missing AND env missing → AskUserQuestion
-- `--evidence-channels` missing AND env missing → AskUserQuestion
-- Validate the OKR DB schema with `mcp__claude_ai_Notion__notion-fetch` once — fail loudly if columns are missing
+- Notion DB ID: auto-resolve "OKRs" via the algorithm in docs/auto-resolve.md (cache-first, fall through to notion-search). Override: `--okr-db-id <id>` or env `CLAUDE_CODE_TOOLKIT_OKR_DB_ID`.
+- Slack evidence channels: auto-resolve `#wins`, `#shipped`, `#launches` via the algorithm in docs/auto-resolve.md (cache-first, fall through to `slack_search_channels`). Override: `--evidence-channels <comma-separated>` or env `CLAUDE_CODE_TOOLKIT_OKR_CHANNELS`.
+- Validate the resolved OKR DB schema with `mcp__claude_ai_Notion__notion-fetch` once — fail loudly if columns are missing
 
 ### 2. Fetch all KRs
 
-Call `mcp__claude_ai_Notion__notion-fetch` against the OKR DB. Fetch every row's Key Result text + Objective + Owner + the existing auto-fields. Skip rows whose Status is `Closed` or `Archived` (custom column in some setups — best-effort detection).
+Call `mcp__claude_ai_Notion__notion-fetch` against the resolved OKR DB. Fetch every row's Key Result text + Objective + Owner + the existing auto-fields. Skip rows whose Status is `Closed` or `Archived` (custom column in some setups — best-effort detection).
 
 ### 3. Run slack-scout for evidence channels
 
@@ -120,6 +121,7 @@ Recommended launchd cron at every Monday 09:00 KST:
 # StartCalendarInterval: { Weekday=1, Hour=9, Minute=0 }
 # EnvironmentVariables:
 #   CLAUDE_CODE_TOOLKIT_CRON_MODE=1
+#   # Optional — only set if you want to override auto-resolve
 #   CLAUDE_CODE_TOOLKIT_OKR_DB_ID=<id>
 #   CLAUDE_CODE_TOOLKIT_OKR_CHANNELS=#wins,#shipped,#launches,#product-updates
 ```

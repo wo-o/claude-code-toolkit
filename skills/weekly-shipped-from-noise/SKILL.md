@@ -7,12 +7,13 @@ description: Scan a configurable set of Slack channels for one week of shipping 
 
 Every Friday afternoon a manager opens five Slack channels, 30 PR notifications, and eight Notion pages to assemble a weekly report — and still misses things. This skill collapses the same hour-and-a-half job into a single command. With one week as the window, the skill scans every shipping signal scattered across Slack, deduplicates the same event mentioned in multiple channels, and writes a categorized Notion page with every source linked.
 
+Zero-config: this skill auto-resolves the Notion parent page "Weekly Shipped" and Slack channels `#wins`, `#shipped`, `#launches` on first run and caches the IDs — see docs/auto-resolve.md.
+
 ## Input
 
 - `--week YYYY-Www` (optional, defaults to the current ISO week in KST) — target week (e.g. `2026-W17`)
-- `--channels <comma-separated>` (optional, falls back to env `CLAUDE_CODE_TOOLKIT_SHIPPED_CHANNELS`) — channels to scan (e.g. `#general,#eng,#product,#wins,#shipped,#launches`)
-- `--notion-parent-id <id>` (optional, falls back to env `CLAUDE_CODE_TOOLKIT_SHIPPED_PARENT_ID`) — Notion parent page ID under which the weekly page is created
-- Missing input → AskUserQuestion (never guess)
+- `--channels <comma-separated>` (override only — defaults to auto-resolve Slack channels `#wins`, `#shipped`, `#launches`. Env override: `CLAUDE_CODE_TOOLKIT_SHIPPED_CHANNELS`)
+- `--notion-parent-id <id>` (override only — defaults to auto-resolve Notion parent page "Weekly Shipped". Env override: `CLAUDE_CODE_TOOLKIT_SHIPPED_PARENT_ID`)
 
 ## Output
 
@@ -56,8 +57,8 @@ Format of the Notion page body:
 ### 1. Parse input
 
 - `--week` missing → current ISO week (KST). Compute the Monday 00:00 ~ Sunday 23:59 boundary
-- `--channels` missing AND env missing → AskUserQuestion with the default 6-channel list as a recommendation
-- `--notion-parent-id` missing AND env missing → AskUserQuestion
+- Slack channels: auto-resolve `#wins`, `#shipped`, `#launches` via the algorithm in docs/auto-resolve.md (cache-first, fall through to `slack_search_channels`). Override: `--channels <comma-separated>` or env `CLAUDE_CODE_TOOLKIT_SHIPPED_CHANNELS`.
+- Notion parent page ID: auto-resolve "Weekly Shipped" via the algorithm in docs/auto-resolve.md (cache-first, fall through to notion-search with page filter). Override: `--notion-parent-id <id>` or env `CLAUDE_CODE_TOOLKIT_SHIPPED_PARENT_ID`.
 
 ### 2. Run slack-scout for each channel
 
@@ -108,7 +109,7 @@ Add them as a separate section — these are confirmation signals, not authorita
 ### 7. Create the weekly Notion page
 
 Call `mcp__claude_ai_Notion__notion-create-pages`:
-- `parent`: `page_id` = the input parent page ID
+- `parent`: `page_id` = the resolved parent page ID
 - `properties`: `title` = `Weekly Shipped — YYYY-Www`
 - `children`: heading_2 + bulleted_list_item blocks per the body format above
 
@@ -129,6 +130,7 @@ Recommended launchd cron at Friday 17:00 KST:
 # StartCalendarInterval: { Weekday=5, Hour=17, Minute=0 }
 # EnvironmentVariables:
 #   CLAUDE_CODE_TOOLKIT_CRON_MODE=1
+#   # Optional — only set if you want to override auto-resolve
 #   CLAUDE_CODE_TOOLKIT_SHIPPED_CHANNELS=#general,#eng,#product,#wins,#shipped,#launches
 #   CLAUDE_CODE_TOOLKIT_SHIPPED_PARENT_ID=<id>
 ```

@@ -7,16 +7,17 @@ description: Scan Sent mail for threads where the operator's last message has go
 
 The personal mirror of `thread-zombie-killer` for Gmail. Email follow-ups die in two ways: the recipient forgets, or the operator forgets they sent it. This skill surfaces the operator's own outbound threads that have gone quiet, tiered by how many days they have been waiting. Like thread-zombie-killer, this is a **personal dashboard** — never broadcast, never published in a shared place by default.
 
+Zero-config: when Notion mirroring is enabled, this skill auto-resolves the Notion page "Follow-up Radar" (a single mirror page that gets overwritten each run, not a DB) on first run and caches the ID — see docs/auto-resolve.md. The `--my-email` value is read from the authenticated Gmail Connector profile when not provided.
+
 The skill is **read-only by design**. It does not draft replies, does not post to Slack, and does not write to Notion unless `--notion-mirror-page-id` is explicitly passed.
 
 ## Input
 
-- `--my-email <email>` (optional, falls back to env `CLAUDE_CODE_TOOLKIT_FOLLOWUP_MY_EMAIL`) — the authenticated Gmail address (used to detect "the operator was the last sender")
+- `--my-email <email>` (override only — defaults to the authenticated Gmail account's address. Env override: `CLAUDE_CODE_TOOLKIT_FOLLOWUP_MY_EMAIL`)
 - `--tiers 3,7,14` (optional, default `3,7,14`) — tier days for `Soft`, `Hard`, `Cold` follow-up buckets
 - `--ignore-labels <list>` (optional, default `Newsletter,Automated,No-reply`) — skip threads with any of these labels (most newsletters are one-way and never expected to reply)
 - `--ignore-domains <list>` (optional) — skip recipient domains (e.g. `noreply.github.com`)
-- `--notion-mirror-page-id <id>` (optional) — if set, mirror the report into a Notion page (overwrites the page each run)
-- Missing required input → AskUserQuestion (never guess)
+- `--notion-mirror-page-id <id>` (override only — when Notion mirroring is enabled, defaults to auto-resolve the Notion page "Follow-up Radar" via the algorithm in docs/auto-resolve.md. The skill writes a single-page overwrite, not DB rows)
 
 ## Output
 
@@ -50,9 +51,10 @@ Console report format (markdown to stdout):
 
 ### 1. Parse input
 
-- `--my-email` missing AND env missing → AskUserQuestion (the skill cannot detect "still waiting" without knowing the operator's address)
+- `--my-email`: when missing, read the authenticated Gmail account's address from the Connector profile (the skill needs the operator's address to detect "still waiting"). Override: `--my-email <email>` or env `CLAUDE_CODE_TOOLKIT_FOLLOWUP_MY_EMAIL`.
 - `--tiers` validate: 3 ascending integers
 - `--ignore-labels` defaults to a sensible newsletter-shaped list
+- Notion mirror target (when enabled): auto-resolve the page "Follow-up Radar" via the algorithm in docs/auto-resolve.md (cache-first, fall through to notion-search with `type=page`). Override: `--notion-mirror-page-id <id>` to mirror into a specific page instead.
 
 ### 2. Pull Sent mail
 
@@ -113,6 +115,7 @@ Recommended launchd cron at every weekday 09:00 KST:
 # StartCalendarInterval: [{Weekday=1..5, Hour=9, Minute=0}]
 # EnvironmentVariables:
 #   CLAUDE_CODE_TOOLKIT_CRON_MODE=1
+#   # Optional — only set if you want to override auto-resolve
 #   CLAUDE_CODE_TOOLKIT_FOLLOWUP_MY_EMAIL=<your-gmail-address>
 ```
 

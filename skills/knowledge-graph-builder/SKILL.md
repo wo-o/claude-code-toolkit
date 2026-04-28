@@ -7,14 +7,15 @@ description: Match yesterday's Slack threads against yesterday's Notion page edi
 
 Same topic, two homes — and the homes do not know each other. The Notion page "API auth design" sits next to a separate Slack thread debating the same decision; new hires see only one side. Hand-linking is a willpower problem nobody wins. This skill closes the loop automatically: every evening it scans the day's Slack threads and Notion edits, finds high-confidence matches, and inserts cross-references on both sides. False positives are the entire risk model — so the skill defaults to high-precision matching and never auto-links low-confidence pairs.
 
+Zero-config: in default mode the skill writes cross-references back into the Slack threads and Notion pages it matched, so no canonical resource is needed. In `--review-mode`, it auto-resolves the parent page "Knowledge Graph Review" and creates a daily child page underneath it — see docs/auto-resolve.md. Slack channels are auto-derived from the day's thread activity when not specified.
+
 ## Input
 
 - `--since YYYY-MM-DD` (optional, defaults to yesterday 00:00 KST) — earliest message/edit to consider
-- `--slack-channels <comma-separated>` (optional, falls back to env `CLAUDE_CODE_TOOLKIT_KG_CHANNELS`) — channels to scan for threads
-- `--notion-workspace <id>` (optional, falls back to env `CLAUDE_CODE_TOOLKIT_KG_WORKSPACE`) — Notion workspace scope (omit for whole-account search)
+- `--slack-channels <comma-separated>` (override only — defaults to auto-derived from observed thread activity. Env override: `CLAUDE_CODE_TOOLKIT_KG_CHANNELS`)
+- `--notion-workspace <id>` (override only — defaults to whole-account search scope. Env override: `CLAUDE_CODE_TOOLKIT_KG_WORKSPACE`)
 - `--threshold N` (optional, default 0.75) — minimum similarity score (0.0~1.0) to auto-link
 - `--review-mode` (optional flag) — output match candidates to a Notion review page instead of writing cross-references directly. Recommended for the first 1-2 weeks
-- Missing input → AskUserQuestion (never guess)
 
 ## Output
 
@@ -30,7 +31,9 @@ Same topic, two homes — and the homes do not know each other. The Notion page 
 ### 1. Parse input
 
 - `--since` missing → yesterday 00:00 KST
-- Channel list missing → AskUserQuestion (default to a curated 4-5 channel set — do not scan the whole workspace)
+- Slack channels: when missing, default to auto-derived from observed thread activity (mentions / cross-references). On large workspaces, pass `--slack-channels` to limit scope explicitly. Env override: `CLAUDE_CODE_TOOLKIT_KG_CHANNELS`.
+- Default mode does not need a canonical resource — it writes cross-references back into the matched Slack threads and Notion pages directly.
+- `--review-mode` only: auto-resolve the parent page "Knowledge Graph Review" via the algorithm in docs/auto-resolve.md (cache-first, fall through to notion-search with `type=page`). The skill creates a daily child page named `Knowledge Graph Review — YYYY-MM-DD` under it. Override: edit `~/.claude-code-toolkit/auto-resolve.json` directly.
 - `--threshold` clamped to [0.6, 1.0]; below 0.6 the false-positive rate becomes unacceptable
 
 ### 2. Collect Slack threads
@@ -121,6 +124,7 @@ Recommended launchd cron at daily 18:00 KST:
 # StartCalendarInterval: { Hour=18, Minute=0 }
 # EnvironmentVariables:
 #   CLAUDE_CODE_TOOLKIT_CRON_MODE=1
+#   # Optional — only set if you want to override auto-resolve
 #   CLAUDE_CODE_TOOLKIT_KG_CHANNELS=#eng,#product,#design,#research
 #   CLAUDE_CODE_TOOLKIT_KG_WORKSPACE=<id>
 ```

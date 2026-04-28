@@ -7,6 +7,8 @@ description: Generate a one-page project brief by gathering recent activity from
 
 Collects a project's recent Slack activity and Notion progress, then condenses it into a one-page brief.
 
+Zero-config: when the user opts to save the brief to Notion, this skill auto-resolves the Notion parent page "Project Briefs" on first run and caches the ID — see docs/auto-resolve.md. Saving to Notion remains opt-in; the default output is console only.
+
 ## Input
 
 - Project name (required, free-form string). Examples: `mobile-relaunch`, `payments-v2`, `Q2 OKR`
@@ -92,7 +94,7 @@ prompt: |
 
 Show the synthesizer's result to the user as-is. Do not post-process — the synthesizer already enforces the format.
 
-(Optional) If the user asks to "save to Notion", call `mcp__claude_ai_Notion__notion-create-pages`. Ask the user for the parent page. This path triggers the plugin hook (`PreToolUse(mcp__claude_ai_Notion__notion-create-pages)`) which prompts once for confirmation before proceeding.
+(Optional) If the user asks to "save to Notion", call `mcp__claude_ai_Notion__notion-create-pages`. Resolve the parent page by auto-resolving "Project Briefs" via the algorithm in docs/auto-resolve.md (cache-first, fall through to notion-search with page filter) — do NOT ask the user for the parent page. This path triggers the plugin hook (`PreToolUse(mcp__claude_ai_Notion__notion-create-pages)`) which prompts once for confirmation before proceeding.
 
 ## Pitfalls
 

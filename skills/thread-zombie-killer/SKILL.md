@@ -7,13 +7,14 @@ description: Find Slack mention threads that received no reply within configurab
 
 A teammate `@mentions` you on Tuesday. You see it, plan to reply that evening, and forget. By Friday it's buried. By the next Monday it's lost entirely. Multiply by every team member, every channel — these dormant zombies are the largest source of trust erosion in remote teams. People mostly don't notice they are being ignored; they just stop trusting that messages get answered. This skill scans the workspace daily, finds mentions that have crossed the 3-day / 7-day / 14-day silence threshold, and surfaces them in Notion grouped by the person who owes the reply.
 
+Zero-config: this skill auto-resolves the Notion DB "Open Mentions" on first run and caches the ID — see docs/auto-resolve.md. The channel set is auto-derived by first searching for mentions of the watched users (or the authenticated user) workspace-wide, then narrowing scans to the channels those mentions appeared in — never a blind scan of every public channel.
+
 ## Input
 
-- `--scan-channels <comma-separated>` (optional, falls back to env `CLAUDE_CODE_TOOLKIT_ZOMBIE_CHANNELS`) — channels to scan (omit for all public channels the integration can read)
+- `--scan-channels <comma-separated>` (override only — defaults to channels auto-derived from `slack_search_public` for `@<watched-user>` mentions in the last 21 days. Env override: `CLAUDE_CODE_TOOLKIT_ZOMBIE_CHANNELS`)
 - `--watch-users <comma-separated handles>` (optional) — narrow surveillance to specific responders (e.g. team leads). When omitted, every mentioned user is tracked
-- `--notion-db-id <id>` (optional, falls back to env `CLAUDE_CODE_TOOLKIT_ZOMBIE_DB_ID`) — Notion Open Mentions DB ID
+- `--notion-db-id <id>` (override only — defaults to auto-resolve Notion DB "Open Mentions". Env override: `CLAUDE_CODE_TOOLKIT_ZOMBIE_DB_ID`)
 - `--exclude-bots` (optional flag, default true) — skip mentions from/to bots
-- Missing input → AskUserQuestion (never guess)
 
 ## Output
 
@@ -42,9 +43,9 @@ The Notion DB schema (one-time setup; the skill validates with `mcp__claude_ai_N
 
 ### 1. Parse input
 
-- `--scan-channels` missing AND env missing → AskUserQuestion (default to a curated channel list — scanning every public channel is rate-limit-hostile)
-- `--notion-db-id` missing AND env missing → AskUserQuestion
-- Validate the Notion DB schema with `mcp__claude_ai_Notion__notion-fetch` once
+- Slack channels: when `--scan-channels` and env are missing, run `mcp__claude_ai_Slack__slack_search_public` for the last 21 days with the query `@<watched-user>` (one search per watched user, or the authenticated user when `--watch-users` is omitted). Take the unique set of channel IDs from the results and use that as the scan set. This avoids the "every public channel" rate-limit blast — the skill only re-reads channels where a relevant mention has actually been observed recently.
+- Notion DB ID: auto-resolve "Open Mentions" via the algorithm in docs/auto-resolve.md (cache-first, fall through to notion-search). Override: `--notion-db-id <id>` or env `CLAUDE_CODE_TOOLKIT_ZOMBIE_DB_ID`.
+- Validate the resolved Notion DB schema with `mcp__claude_ai_Notion__notion-fetch` once
 
 ### 2. Find mentions
 
@@ -119,6 +120,7 @@ Recommended launchd cron at weekday 09:00 KST:
 # StartCalendarInterval: [{Weekday=1..5, Hour=9, Minute=0}]
 # EnvironmentVariables:
 #   CLAUDE_CODE_TOOLKIT_CRON_MODE=1
+#   # Optional — only set if you want to override auto-resolve
 #   CLAUDE_CODE_TOOLKIT_ZOMBIE_CHANNELS=#eng,#product,#design,#ops,#general
 #   CLAUDE_CODE_TOOLKIT_ZOMBIE_DB_ID=<id>
 ```

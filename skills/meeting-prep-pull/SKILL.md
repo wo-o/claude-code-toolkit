@@ -7,15 +7,16 @@ description: Given a Google Calendar event (defaults to the next meeting on the 
 
 The 10-minute pre-meeting cram, automated. Before a 14:00 partner call, the operator usually opens five email threads, scrolls Slack, and skims two Notion pages. This skill collapses that scramble into a single command — given a calendar event, it gathers Gmail threads with each external attendee from the last 14 days, finds related Notion pages, and writes a one-page pre-read in Notion the operator can read in 90 seconds.
 
+Zero-config: this skill auto-resolves the Notion parent page "Meeting Prep" on first run and caches the ID — see docs/auto-resolve.md. The internal domain is inferred from the authenticated Gmail account when not specified.
+
 The skill is on-demand only (not a scheduled cron) — it pulls just-in-time before each meeting.
 
 ## Input
 
 - `--event-id <id>` (optional) — Google Calendar event ID. If omitted, the skill calls `mcp__claude_ai_Google_Calendar__list_events` for the next 24 hours on the primary calendar and picks the soonest one. If multiple within the next 2h → AskUserQuestion
 - `--lookback-days N` (optional, default 14) — Gmail and Notion lookback window
-- `--notion-parent-id <id>` (optional, falls back to env `CLAUDE_CODE_TOOLKIT_PREP_PARENT_ID`) — parent page under which the pre-read is created
-- `--internal-domain <domain>` (optional, falls back to env `CLAUDE_CODE_TOOLKIT_PREP_INTERNAL_DOMAIN`) — operator's own domain (used to distinguish external attendees from teammates)
-- Missing required input → AskUserQuestion (never guess)
+- `--notion-parent-id <id>` (override only — defaults to auto-resolve Notion parent page "Meeting Prep". Env override: `CLAUDE_CODE_TOOLKIT_PREP_PARENT_ID`)
+- `--internal-domain <domain>` (override only — defaults to the domain of the authenticated Gmail account. Env override: `CLAUDE_CODE_TOOLKIT_PREP_INTERNAL_DOMAIN`)
 
 ## Output
 
@@ -67,6 +68,8 @@ Pre-read page format:
 
 ### 1. Parse input + pick the event
 
+- Notion parent page ID: auto-resolve "Meeting Prep" via the algorithm in docs/auto-resolve.md (cache-first, fall through to notion-search with page filter). Override: `--notion-parent-id <id>` or env `CLAUDE_CODE_TOOLKIT_PREP_PARENT_ID`.
+- Internal domain: when missing, derive from the authenticated Gmail account (e.g. `me@example.com` → `example.com`). Override: `--internal-domain <domain>` or env `CLAUDE_CODE_TOOLKIT_PREP_INTERNAL_DOMAIN`.
 - If `--event-id` missing → call `mcp__claude_ai_Google_Calendar__list_events` for `primary` calendar, `time_min=now`, `time_max=now+24h`
 - If 0 events → exit with "No meetings in the next 24 hours"
 - If 1 event → use it
@@ -142,7 +145,7 @@ The synthesizer is read-only — it never writes to Notion / Gmail / Slack. Patt
 ### 6. Create the Notion pre-read page
 
 Call `mcp__claude_ai_Notion__notion-create-pages`:
-- `parent`: `page_id` = the input parent page ID
+- `parent`: `page_id` = the resolved parent page ID
 - `properties`: `title` = `Pre-Read — <event title> — YYYY-MM-DD HH:MM`
 - `children`: heading_2 + bulleted_list_item blocks per the body format above
 

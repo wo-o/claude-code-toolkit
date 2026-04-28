@@ -7,15 +7,16 @@ description: Scan the inbox for unreplied threads older than N hours, classify e
 
 By 08:30 the inbox already has 40 new threads. Half are newsletters, a quarter are FYI, and the small remainder is what actually needs a reply today — but to find them you scroll for fifteen minutes. This skill runs the scroll for you: it labels every thread inside Gmail (so the inbox is sorted at a glance) and upserts the action_required threads into a Notion DB the operator can scan in 60 seconds.
 
+Zero-config: this skill auto-resolves the Notion DB "Inbox Triage" on first run and caches the ID — see docs/auto-resolve.md. Gmail is the only inbound source; no Slack channel resolution needed.
+
 Outbound is **draft-only** by Connector design (Anthropic's Gmail Connector exposes `create_draft` but not `send_message`) — this skill never drafts replies, only labels and indexes. Reply drafting is a separate skill (out of scope for v1).
 
 ## Input
 
 - `--since-hours N` (optional, default 24) — only consider threads with messages in the last N hours
 - `--label-prefix S` (optional, default `Triage/`) — Gmail label prefix (`Triage/Action`, `Triage/FYI`, `Triage/Newsletter`, `Triage/Spam`)
-- `--notion-db-id <id>` (optional, falls back to env `CLAUDE_CODE_TOOLKIT_INBOX_DB_ID`) — Notion "Inbox Triage" DB
+- `--notion-db-id <id>` (override only — defaults to auto-resolve Notion DB "Inbox Triage". Env override: `CLAUDE_CODE_TOOLKIT_INBOX_DB_ID`)
 - `--exclude-labels <list>` (optional, default `Triage/Action,Triage/FYI,Triage/Newsletter,Triage/Spam`) — skip threads already triaged
-- Missing input → AskUserQuestion (never guess)
 
 ## Output
 
@@ -44,8 +45,8 @@ The Notion DB schema (one-time setup; the skill validates with `mcp__claude_ai_N
 
 - `--since-hours` missing → 24
 - `--label-prefix` missing → `Triage/`
-- `--notion-db-id` missing AND env missing → AskUserQuestion
-- Validate the Notion DB schema with `mcp__claude_ai_Notion__notion-fetch` once. If columns are missing, exit and print the expected schema for the operator to add manually
+- Notion DB ID: auto-resolve "Inbox Triage" via the algorithm in docs/auto-resolve.md (cache-first, fall through to notion-search). Override: `--notion-db-id <id>` or env `CLAUDE_CODE_TOOLKIT_INBOX_DB_ID`.
+- Validate the resolved Notion DB schema with `mcp__claude_ai_Notion__notion-fetch` once. If columns are missing, exit and print the expected schema for the operator to add manually
 - Ensure the four labels exist via `mcp__claude_ai_Gmail__list_labels` — create any missing ones with `mcp__claude_ai_Gmail__create_label`
 
 ### 2. Collect candidate threads
@@ -122,6 +123,7 @@ Recommended launchd cron at every weekday 08:00 KST:
 # StartCalendarInterval: [{Weekday=1..5, Hour=8, Minute=0}]
 # EnvironmentVariables:
 #   CLAUDE_CODE_TOOLKIT_CRON_MODE=1
+#   # Optional — only set if you want to override auto-resolve
 #   CLAUDE_CODE_TOOLKIT_INBOX_DB_ID=<id>
 ```
 

@@ -7,13 +7,14 @@ description: Scan the last N days of Slack across configured channels for help/b
 
 A teammate types "blocked — I don't have access" at 14:00 Tuesday in `#eng`. Nobody replies. By Friday's 1:1 the manager finds out — and is annoyed that nobody flagged it, even though the teammate did. The cost of a blocker grows non-linearly with age (2→4 days is much cheaper to fix than 4→8 days, because attention has already moved elsewhere). This skill scans configurable channels every morning, recognizes the SOS signals a manager can't possibly follow in real time, and surfaces them as a Notion DB the manager can scan in 60 seconds.
 
+Zero-config: this skill auto-resolves the Notion DB "Blockers" and any Slack channels matching `#help-*` on first run and caches the IDs — see docs/auto-resolve.md.
+
 ## Input
 
 - `--since YYYY-MM-DD` (optional, defaults to yesterday 00:00 KST) — earliest message to consider
-- `--channels <comma-separated>` (optional, falls back to env `CLAUDE_CODE_TOOLKIT_BLOCKER_CHANNELS`) — channels to scan (e.g. `#eng,#product,#ops,#design`)
-- `--notion-db-id <id>` (optional, falls back to env `CLAUDE_CODE_TOOLKIT_BLOCKER_DB_ID`) — Notion Blockers DB ID
+- `--channels <comma-separated>` (override only — defaults to auto-resolve via `slack_search_channels` matching `#help-*`. Env override: `CLAUDE_CODE_TOOLKIT_BLOCKER_CHANNELS`)
+- `--notion-db-id <id>` (override only — defaults to auto-resolve Notion DB "Blockers". Env override: `CLAUDE_CODE_TOOLKIT_BLOCKER_DB_ID`)
 - `--min-age-hours N` (optional, default 24) — only surface a blocker if it has gone unanswered for at least N hours
-- Missing input → AskUserQuestion (never guess)
 
 ## Output
 
@@ -41,9 +42,9 @@ The Notion DB schema (one-time setup; the skill validates with `mcp__claude_ai_N
 ### 1. Parse input
 
 - `--since` missing → yesterday 00:00 KST
-- `--channels` missing AND env missing → AskUserQuestion
-- `--notion-db-id` missing AND env missing → AskUserQuestion
-- Validate the Notion DB schema with `mcp__claude_ai_Notion__notion-fetch` once. If columns are missing, exit and print the expected schema for the operator to add manually
+- Slack channels: auto-resolve via `slack_search_channels` matching `#help-*` per the algorithm in docs/auto-resolve.md (cache-first). Override: `--channels <comma-separated>` or env `CLAUDE_CODE_TOOLKIT_BLOCKER_CHANNELS`.
+- Notion DB ID: auto-resolve "Blockers" via the algorithm in docs/auto-resolve.md (cache-first, fall through to notion-search). Override: `--notion-db-id <id>` or env `CLAUDE_CODE_TOOLKIT_BLOCKER_DB_ID`.
+- Validate the resolved Notion DB schema with `mcp__claude_ai_Notion__notion-fetch` once. If columns are missing, exit and print the expected schema for the operator to add manually
 
 ### 2. Run slack-scout for each channel
 
@@ -123,6 +124,7 @@ Recommended launchd cron at every weekday 09:00 KST:
 # StartCalendarInterval: [{Weekday=1..5, Hour=9, Minute=0}]
 # EnvironmentVariables:
 #   CLAUDE_CODE_TOOLKIT_CRON_MODE=1
+#   # Optional — only set if you want to override auto-resolve
 #   CLAUDE_CODE_TOOLKIT_BLOCKER_CHANNELS=#eng,#product,#ops,#design
 #   CLAUDE_CODE_TOOLKIT_BLOCKER_DB_ID=<id>
 ```

@@ -7,11 +7,13 @@ description: Extract decision messages from a Slack channel for a given date and
 
 **Workshop pick #1 (H+X warm-up).** Each day, automatically moves decisions dropped into the Slack #decisions channel during PM meetings into a Notion DB. Permanently preserved so that, at quarterly retros, you can trace "Why did we decide it that way back then?". See `docs/workshop-flow.md` for the demo sequence.
 
+Zero-config: this skill auto-resolves the Notion DB "Decision Log" and Slack channel `#decisions` on first run and caches the IDs — see docs/auto-resolve.md.
+
 ## Input
 
 - `--date YYYY-MM-DD` (optional, defaults to today) — the target date to extract
-- `--channel #channel-name` (optional, default `#decisions`) — Slack channel
-- `--notion-db-id <id>` (optional, falls back to env `CLAUDE_CODE_TOOLKIT_DECISION_DB_ID`) — Notion DB ID
+- `--channel #channel-name` (override only — defaults to auto-resolve Slack channel `#decisions`)
+- `--notion-db-id <id>` (override only — defaults to auto-resolve Notion DB "Decision Log". Env override: `CLAUDE_CODE_TOOLKIT_DECISION_DB_ID`)
 
 ## Output
 
@@ -29,13 +31,13 @@ Prints the number of rows added + the Notion URL of each row. One-line console s
 ### 1. Parse input
 
 - `--date` missing → today (timezone Asia/Seoul, KST)
-- `--channel` missing → `#decisions`
-- `--notion-db-id` missing AND `CLAUDE_CODE_TOOLKIT_DECISION_DB_ID` env missing → AskUserQuestion
+- Slack channel: auto-resolve `#decisions` via the algorithm in docs/auto-resolve.md (cache-first, fall through to `slack_search_channels`). Override: `--channel <name>`.
+- Notion DB ID: auto-resolve "Decision Log" via the algorithm in docs/auto-resolve.md (cache-first, fall through to notion-search). Override: `--notion-db-id <id>` or env `CLAUDE_CODE_TOOLKIT_DECISION_DB_ID`.
 
 ### 2. Collect Slack messages
 
 Call `mcp__claude_ai_Slack__slack_read_channel`:
-- `channel`: the input channel's ID (resolve name → ID via `mcp__claude_ai_Slack__slack_search_channels`)
+- `channel`: the resolved channel's ID
 - `oldest`: Unix timestamp for 00:00 KST on the input date
 - `latest`: Unix timestamp for 23:59 KST on the input date
 - `limit`: 200
@@ -60,7 +62,7 @@ Attach the following metadata to each decision:
 ### 4. Add Notion DB rows
 
 For each decision, call `mcp__claude_ai_Notion__notion-create-pages`:
-- `parent`: `database_id` = the input DB ID
+- `parent`: `database_id` = the resolved DB ID
 - `properties`:
   - `Title` (title): one-line summary of the decision (≤ 50 chars)
   - `Date` (date): decision time
@@ -86,6 +88,7 @@ Recommend launchd cron at 18:00 KST daily:
 # StartCalendarInterval: { Hour=18, Minute=0 }
 # EnvironmentVariables:
 #   CLAUDE_CODE_TOOLKIT_CRON_MODE=1
+#   # Optional — only set if you want to override auto-resolve
 #   CLAUDE_CODE_TOOLKIT_DECISION_DB_ID=<id>
 ```
 
