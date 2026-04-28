@@ -1,39 +1,41 @@
 # claude-code-toolkit
 
-팀 생산성 Claude Code plugin. 직군별(엔지·보안·PM·세일즈·CS) 자동화 skill + subagent 묶음.
+Team productivity Claude Code plugin. A role-aware (eng / security / PM / sales / CS) bundle of automation skills + subagents.
 
-- **Skills:** 6종 (project-brief, decision-log-keeper, spec-from-thread, ticket-triage-router, battle-card-builder, deal-context-loader)
-- **Subagents:** 5종 (synthesizer, slack-scout, notion-scout, ticket-classifier, ticket-draft-writer)
-- **외부 통합:** Slack / Notion / HubSpot — Anthropic 공식 Connector를 `claude.ai/customize/connectors` UI에서 토글. plugin은 Connector 등록을 관리하지 않음
-- **보안 baseline (선택):** 조직에 기존 Claude Code baseline (sandbox + deny rule + PreToolUse 차단)이 있으면 그 위에 본 plugin을 얹는 것을 권장. 없으면 본 plugin 단독 동작도 가능.
+- **Skills:** 14
+  - On-demand: project-brief, decision-log-keeper, spec-from-thread, ticket-triage-router, battle-card-builder, deal-context-loader, meeting-prep-pull
+  - Scheduled (designed for cron): weekly-shipped-from-noise, blocker-radar, knowledge-graph-builder, okr-sync, thread-zombie-killer, inbox-zero-triage, follow-up-radar
+- **Subagents:** 5 (synthesizer, slack-scout, notion-scout, ticket-classifier, ticket-draft-writer)
+- **External integrations:** Slack / Notion / HubSpot / Gmail / Google Calendar — toggle Anthropic's official Connectors in the `claude.ai/customize/connectors` UI. The plugin does not manage Connector registration.
+- **Security baseline (optional):** if your organization already has a Claude Code baseline (sandbox + deny rules + PreToolUse blocking), we recommend layering this plugin on top of it. The plugin also runs standalone if no baseline exists.
 
-설계 근거: `docs/workshop-flow.md`
+Design rationale: `docs/workshop-flow.md`
 
 ---
 
-## 사전 요구사항
+## Prerequisites
 
-1. **Claude Code 설치** — macOS / Linux. 버전 확인:
+1. **Install Claude Code** — macOS / Linux. Verify the version:
    ```
    claude --version
    ```
-2. **GitHub CLI 인증** — plugin이 호스팅된 marketplace 접근:
+2. **GitHub CLI authentication** — required to access the marketplace where the plugin is hosted:
    ```
    gh auth login
    gh auth status
    ```
-3. **(선택) 보안 baseline 선행 설치** — 조직 차원 sandbox + deny rule이 있으면 그 위에 본 plugin을 얹는 것을 권장. baseline에서 다음을 강제하면 본 plugin은 그대로 안전하게 동작:
-   - `sandbox.enabled: true` — macOS Seatbelt / Linux bubblewrap 격리
-   - 시스템·자격증명·secret 보호 deny rule
-   - PreToolUse hooks: `rm -rf` 차단, `git push main` 차단
+3. **(Optional) Install the security baseline first** — if an org-wide sandbox + deny rule baseline exists, we recommend layering this plugin on top. With the baseline enforcing the following, the plugin runs safely as-is:
+   - `sandbox.enabled: true` — macOS Seatbelt / Linux bubblewrap isolation
+   - Deny rules protecting system files, credentials, and secrets
+   - PreToolUse hooks: blocking `rm -rf` and `git push main`
 
-   baseline이 없으면 plugin은 단독 동작하되 위 가드들은 별도로 도입 권장.
+   Without a baseline, the plugin still runs standalone, but we recommend adopting the guards above separately.
 
 ---
 
-## 설치
+## Installation
 
-> marketplace 호스팅이 결정되기 전까지는 로컬 plugin 디렉토리 install 사용:
+> Until marketplace hosting is finalized, install from a local plugin directory:
 >
 > ```
 > claude /plugin install /path/to/claude-code-toolkit
@@ -44,121 +46,184 @@ claude /plugin marketplace add <marketplace-url>
 claude /plugin install claude-code-toolkit
 ```
 
-설치 후 활성화 확인:
+After install, verify activation:
 
 ```
 claude /plugin list
-# claude-code-toolkit (enabled) 표시 확인
+# Confirm claude-code-toolkit (enabled) is shown
 ```
 
 ---
 
-## Connectors 활성 (Slack / Notion / HubSpot)
+## Enabling Connectors (Slack / Notion / HubSpot / Gmail / Google Calendar)
 
-본 plugin은 외부 통합을 직접 등록하지 않는다. Anthropic 공식 Connector를 사용한다 — 이유:
+This plugin does not register external integrations directly. We use Anthropic's official Connectors instead — reasons:
 
-- claude.ai 계정에 토글 1회 → CLI / Desktop / Mobile 모두에 자동 노출
-- OAuth 인증을 Anthropic 인프라가 처리, 사용자 PC에 토큰 저장 안 됨
-- skill 코드는 그대로 — 도구 ID(`mcp__slack__*`, `mcp__notion__*`, `mcp__hubspot__*`)가 동일
+- One toggle in your claude.ai account → automatically exposed across CLI / Desktop / Mobile
+- OAuth is handled by Anthropic infrastructure, so no tokens are stored on the user's machine
+- Skill code stays unchanged — the tool IDs (`mcp__slack__*`, `mcp__notion__*`, `mcp__hubspot__*`, `mcp__gmail__*`, `mcp__google_calendar__*`) remain identical
+- **Gmail outbound is draft-only by design** — the Connector exposes `create_draft` but not `send_message`. Drafts land in the operator's Gmail Drafts folder and are never sent until the operator clicks send in the Gmail UI. This eliminates the "wrong message went out" risk that exists for Slack `post_message`.
 
-활성 절차:
+Per-skill Connector requirements:
 
-1. https://claude.ai/customize/connectors 접속
-2. Slack / Notion / HubSpot 각각 토글 → OAuth 흐름 따라가기 (워크스페이스 admin 결재 필요할 수 있음)
-3. CLI에서 노출 검증:
+| Skill | Connectors |
+|---|---|
+| project-brief, decision-log-keeper, spec-from-thread, ticket-triage-router | Slack, Notion |
+| battle-card-builder, deal-context-loader | HubSpot, Notion |
+| weekly-shipped-from-noise, blocker-radar, knowledge-graph-builder, okr-sync, thread-zombie-killer | Slack, Notion |
+| inbox-zero-triage, follow-up-radar | Gmail, Notion |
+| meeting-prep-pull | Gmail, Google Calendar, Notion |
+
+Enablement steps:
+
+1. Visit https://claude.ai/customize/connectors
+2. Toggle the Connectors required by the skills you plan to use, then walk through OAuth (workspace admin approval may be required)
+3. Verify exposure from the CLI:
    ```
    claude /mcp
-   # mcp__slack__*, mcp__notion__*, mcp__hubspot__* 노출 확인
+   # Confirm mcp__slack__*, mcp__notion__*, mcp__hubspot__*, mcp__gmail__*, mcp__google_calendar__* are exposed
    ```
 
-> **GitHub은 의도적으로 미포함.** Anthropic 공식 GitHub Connector는 read-only(파일·브랜치 조회만 — PR diff/comment, Issue write 미지원)이며, 본 toolkit이 PR write까지 수행했던 데모 skill(pr-pattern-auditor / pr-storybook)은 v1에서 제거했다. GitHub 자동화 워크플로우는 별도 trial repo로 분리 예정.
+> **GitHub is intentionally excluded.** Anthropic's official GitHub Connector is read-only (file/branch lookup only — no PR diff/comment, no Issue write), and the demo skills that performed PR writes (pr-pattern-auditor / pr-storybook) have been removed in v1. The GitHub automation workflow will be split out into a separate trial repo.
 
 ---
 
-## 사용
+## Usage
 
-각 skill은 `/claude-code-toolkit:<skill-name>`으로 호출.
+Each skill is invoked via `/claude-code-toolkit:<skill-name>`.
+
+### On-demand skills (manual invocation)
 
 ```
-# 프로젝트 1쪽 브리프 (Slack + Notion 정찰)
+# One-page project brief (Slack + Notion scouts)
 /claude-code-toolkit:project-brief --project <project-name>
 
-# 그날 #decisions 결정 → Notion DB 자동 정리
+# Auto-organize that day's #decisions into a Notion DB
 /claude-code-toolkit:decision-log-keeper --date 2026-04-26
 
-# Slack thread → Notion 스펙 페이지 자동 생성
+# Slack thread → auto-generated Notion spec page
 /claude-code-toolkit:spec-from-thread --thread-url https://...
 
-# Slack #support 메시지 → 분류 + 답변 초안 (Pattern C 격리)
+# Slack #support message → classification + draft reply (Pattern C isolation)
 /claude-code-toolkit:ticket-triage-router --message-url https://...
 
-# 그 외 2종
+# Sales-oriented two
 /claude-code-toolkit:battle-card-builder
 /claude-code-toolkit:deal-context-loader
+
+# Meeting pre-read from Calendar + Gmail + Notion (next event by default)
+/claude-code-toolkit:meeting-prep-pull
 ```
 
-직군별 권장 skill — `docs/workshop-flow.md` 참조.
+### Scheduled skills (designed for cron, also invokable on-demand)
+
+```
+# Weekly Shipped page from Slack shipping signals (Friday 17:00 KST)
+/claude-code-toolkit:weekly-shipped-from-noise --week 2026-W17
+
+# Daily blocker radar across configured channels (weekdays 09:00 KST)
+/claude-code-toolkit:blocker-radar --since 2026-04-26
+
+# Slack thread ↔ Notion page bidirectional cross-references (daily 18:00 KST)
+/claude-code-toolkit:knowledge-graph-builder --review-mode
+
+# Match Notion OKR KRs to Slack shipping evidence, mark stale KRs (Monday 09:00 KST)
+/claude-code-toolkit:okr-sync --window-weeks 1
+
+# Surface dormant @mentions in 3d / 7d / 14d tiers (weekdays 09:00 KST)
+/claude-code-toolkit:thread-zombie-killer
+
+# Daily inbox triage — classify + label + Notion DB upsert (weekdays 08:00 KST)
+/claude-code-toolkit:inbox-zero-triage --since-hours 24
+
+# Personal Gmail follow-up dashboard (3d / 7d / 14d, weekdays 09:00 KST)
+/claude-code-toolkit:follow-up-radar
+```
+
+Recommended skills by role — see `docs/workshop-flow.md`. Per-skill cron setup — see `docs/cron-setup.md`.
 
 ---
 
-## Cron / 외부 trigger 등록 (선택)
+## Cron / external trigger registration (optional)
 
-`decision-log-keeper`는 매일 자동 실행이 가치가 큰 후보. Claude Code hook은 외부 cron을 발화하지 않으므로, macOS는 `launchd`, Linux는 `systemd timer` / `cron`으로 등록.
+Eight of the fourteen skills can be cron-scheduled (seven scheduled-by-design + decision-log-keeper as a daily-cron-friendly on-demand skill). Claude Code hooks cannot fire external cron, so use `launchd` on macOS and `systemd timer` / `cron` on Linux.
 
-예시 — macOS launchd:
+| Skill | Recommended cadence | Bypass env var |
+|---|---|---|
+| decision-log-keeper | Daily 18:00 KST | `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` |
+| weekly-shipped-from-noise | Friday 17:00 KST | `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` |
+| blocker-radar | Weekdays 09:00 KST | `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` |
+| knowledge-graph-builder | Daily 18:00 KST (start with `--review-mode`) | `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` (Notion only — Slack post never bypassed) |
+| okr-sync | Monday 09:00 KST | `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` |
+| thread-zombie-killer | Weekdays 09:00 KST | `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` |
+| inbox-zero-triage | Weekdays 08:00 KST | `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` |
+| follow-up-radar | Weekdays 09:00 KST | `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` (only relevant when `--notion-mirror-page-id` is used) |
+
+Example — macOS launchd:
 
 ```
 # ~/Library/LaunchAgents/<reverse-domain>.claude-code-toolkit.decision-log-keeper.plist
 # StartCalendarInterval Hour=18 Minute=0 → claude -p "/claude-code-toolkit:decision-log-keeper --date $(date +%Y-%m-%d)"
 ```
 
-상세는 `docs/cron-setup.md`.
+Per-skill plist + systemd timer examples in `docs/cron-setup.md`.
 
 ---
 
-## 트러블슈팅
+## Troubleshooting
 
-| 증상 | 원인 | 해결 |
+| Symptom | Cause | Fix |
 |---|---|---|
-| `/plugin install` 실패 — 404 | gh auth 미인증 또는 marketplace repo 권한 부족 | `gh auth refresh -h github.com -s repo` |
-| `/mcp` 명령에 server 미노출 | Connector 토글 누락 또는 claude.ai 미인증 | https://claude.ai/customize/connectors 에서 활성 후 Claude Code 재시작 |
-| Slack `chat:write` 거부 | 워크스페이스 admin 미승인 | admin에게 Connector 결재 요청 후 재OAuth |
-| `Bash(rm -rf *)` 차단 | baseline 정상 동작 (재정의 X) | 의도된 동작 — `trash` 등 안전 도구 사용 |
-| decision-log-keeper Notion 쓰기 직전 사용자 확인 prompt | plugin 고유 hook (`PreToolUse(mcp__notion__create_page)`) | y로 승인 또는 hook 비활성화: `--allowedTools "mcp__notion__create_page"` |
-| CI/cron 환경에서 hook prompt 멈춤 (`read -r _ </dev/tty` 대기) | plugin hook이 인터랙티브 확인 요구 | decision-log-keeper는 `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` (audit: `decision-log-YYYY-MM-DD.jsonl`). spec-from-thread는 본 릴리스 인터랙티브 전용 (audit log 미분리 — §보안 모델 참조) |
-| audit log 파일 누적 | 일자별 JSONL append, rotation 없음 | 운영 정책에 따라 주/월 단위 cleanup (`find ~/.claude-code-toolkit/audit -mtime +30 -delete` 등) |
+| `/plugin install` fails — 404 | gh not authenticated, or insufficient permission on the marketplace repo | `gh auth refresh -h github.com -s repo` |
+| `/mcp` does not list the server | Connector toggle missing, or claude.ai not authenticated | Enable at https://claude.ai/customize/connectors and restart Claude Code |
+| Slack `chat:write` denied | Workspace admin has not approved | Request Connector approval from admin and re-run OAuth |
+| `Bash(rm -rf *)` blocked | Baseline working as intended (not overridden) | Intended behavior — use safe tools like `trash` |
+| User confirmation prompt right before decision-log-keeper Notion write | Plugin-specific hook (`PreToolUse(mcp__notion__create_page)`) | Approve with y, or disable the hook: `--allowedTools "mcp__notion__create_page"` |
+| In CI/cron, hook prompt blocks (`read -r _ </dev/tty` waiting) | Plugin hook is requesting interactive confirmation | All scheduled skills support `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` (per-skill audit logs: `decision-log-YYYY-MM-DD.jsonl`, `weekly-shipped-YYYY-Www.jsonl`, `blocker-radar-YYYY-MM-DD.jsonl`, `knowledge-graph-YYYY-MM-DD.jsonl`, `okr-sync-YYYY-Www.jsonl`, `zombie-killer-YYYY-MM-DD.jsonl`, `inbox-triage-YYYY-MM-DD.jsonl`, `follow-up-radar-YYYY-MM-DD.jsonl`). spec-from-thread and meeting-prep-pull are interactive-only in this release (audit log not separated — see §Security model) |
+| `knowledge-graph-builder` over-linking | Threshold too low, false positives | Raise `--threshold` (default 0.75 — never below 0.6) or run `--review-mode` for 1-2 weeks before enabling auto-link |
+| `inbox-zero-triage` over-classifies as `action_required` | LLM confidence too low default to action | Raise the classifier confidence floor in the skill (currently 0.6 → FYI fallback). Add domain-specific examples to the ticket-classifier subagent |
+| `meeting-prep-pull` returns "No meetings" | No upcoming events in the next 24h, or `--internal-domain` mismatch | Pass `--event-id` explicitly, or set `CLAUDE_CODE_TOOLKIT_PREP_INTERNAL_DOMAIN` correctly (multiple domains comma-separated) |
+| Audit log files piling up | Per-day JSONL append, no rotation | Clean up weekly/monthly per your operations policy (`find ~/.claude-code-toolkit/audit -mtime +30 -delete`, etc.) |
 
 ---
 
-## 보안 모델
+## Security model
 
-- 조직 baseline의 deny rule + sandbox + PreToolUse `rm -rf`/`git push main` 차단은 **재정의 안 함** — 그대로 동작.
-- plugin 고유 hook (`hooks/hooks.json`)은 baseline 미정의 영역만 추가:
-  - `PreToolUse(mcp__notion__create_page)` — Notion DB row 추가 직전 1회 사용자 확인 (cron 모드에서는 audit log only)
-- 시연 픽 3종(decision-log-keeper, ticket-triage-router, spec-from-thread) subagent는 **도구 권한 격리** — read-only / write 분리 (Pattern C). 각 skill의 `agents/` 정의 + frontmatter `tools` allowlist 참조.
-- **외부 통합은 Anthropic 공식 Connector만 사용** — Slack/Notion/HubSpot 모두 OAuth 토큰을 Anthropic 인프라가 관리하며 사용자 디스크에 secret이 저장되지 않는다. plugin이 자체 `.mcp.json`을 갖지 않으므로 환경변수 PAT 주입 표면이 없다.
-- **Composio 등 제3자 broker 미사용:** v0에 포함됐던 Google Drive Composio 통합은 v1에서 제거됨 (외부 인프라에 OAuth refresh token 위탁되는 trust hop 회피). Anthropic-native GDrive Connector가 GA되면 검토 후 도입.
-- **bypass 환경변수 사용 시점:**
-  - `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` — decision-log-keeper Notion row 추가용. audit log: `~/.claude-code-toolkit/audit/decision-log-YYYY-MM-DD.jsonl`
-  - spec-from-thread는 본 릴리스에서 **인터랙티브 confirm 전용** (현 hook이 caller별 audit log를 분리하지 않으므로 bypass 사용 시 audit trail이 decision-log-keeper와 섞인다). caller-aware audit log 분리 후 cron 활성화 검토.
-  - bypass 환경변수는 shell 평소 환경에 export 금지 — cron plist 또는 GitHub Actions secrets에서만 주입.
+- The org baseline's deny rules + sandbox + PreToolUse blocks on `rm -rf` / `git push main` are **never overridden** — they keep working as-is.
+- Plugin-specific hooks (`hooks/hooks.json`) only add coverage in areas the baseline does not define:
+  - `PreToolUse(mcp__notion__create_page)` — one user confirmation right before adding a Notion DB row (in cron mode, audit log only)
+  - `PreToolUse(mcp__notion__update_page)` — same shape, fires for upserts (blocker-radar, okr-sync, knowledge-graph-builder, thread-zombie-killer)
+  - `PreToolUse(mcp__slack__post_message)` — **never bypassed by `CRON_MODE`**. A wrong public Slack message is not silently recoverable. knowledge-graph-builder gates Slack posts here
+  - `mcp__gmail__create_draft` is **NOT gated** — Gmail drafts land in the operator's Drafts folder and never leave the account until the operator presses send in the Gmail UI. The Connector intentionally has no `send_message` API, so the "wrong message went out" risk for Gmail is zero by construction
+  - `mcp__gmail__label_thread` / `mcp__gmail__label_message` are **NOT gated** — labels are visible only to the authenticated Gmail account and can be removed with one click
+- The three demo picks (decision-log-keeper, ticket-triage-router, spec-from-thread) use **per-tool permission isolation** for their subagents — read-only / write are split (Pattern C). See each skill's `agents/` definition + the frontmatter `tools` allowlist. The seven scheduled skills + on-demand meeting-prep-pull reuse the same subagents (slack-scout, notion-scout, ticket-classifier, synthesizer) under the same Pattern C model — no new subagents introduced.
+- **External integrations only use Anthropic's official Connectors** — for Slack/Notion/HubSpot, OAuth tokens are managed by Anthropic infrastructure and no secret is stored on the user's disk. The plugin ships no `.mcp.json` of its own, so there is no environment-variable PAT injection surface.
+- **No third-party broker (Composio, etc.):** the Google Drive Composio integration that shipped in v0 has been removed in v1 (avoiding the trust hop where OAuth refresh tokens get delegated to external infrastructure). Will reconsider once Anthropic's native GDrive Connector reaches GA.
+- **When to use bypass environment variables:**
+  - `CLAUDE_CODE_TOOLKIT_CRON_MODE=1` — for decision-log-keeper Notion row creation. Audit log: `~/.claude-code-toolkit/audit/decision-log-YYYY-MM-DD.jsonl`
+  - In this release spec-from-thread is **interactive-confirm only** (the current hook does not split audit logs by caller, so using bypass would mix its audit trail with decision-log-keeper's). Cron enablement will be revisited once caller-aware audit log separation is in place.
+  - Never `export` bypass environment variables in your normal shell environment — only inject them via cron plist or GitHub Actions secrets.
 
 ---
 
-## 워크숍
+## Workshop
 
-5분 시연 흐름: `docs/workshop-flow.md`
+The 14-skill catalog is too much for a single 5-minute demo, so the workshop runs a 3-skill core lineup. Beyond that core, the extended lineup in `docs/workshop-flow.md` adds longer demos (`weekly-shipped-from-noise`, `blocker-radar`, `knowledge-graph-builder`, `meeting-prep-pull`, etc.) for follow-up office hours.
+
+Core 5-minute demo flow:
 
 ```
-[T+0:30] /claude-code-toolkit:decision-log-keeper --date 2026-04-26       (보수 워밍업, H+X)
-[T+1:30] /claude-code-toolkit:ticket-triage-router --message-url <slack>  (V+X 와우)
-[T+3:30] /claude-code-toolkit:spec-from-thread --thread-url <slack>       (X 클라이맥스, raw → spec 변환)
+[T+0:30] /claude-code-toolkit:decision-log-keeper --date 2026-04-26       (conservative warm-up, H+X)
+[T+1:30] /claude-code-toolkit:ticket-triage-router --message-url <slack>  (V+X wow moment)
+[T+3:30] /claude-code-toolkit:spec-from-thread --thread-url <slack>       (X climax — raw → spec transformation)
 ```
+
+Extended demos and audience-specific picks: `docs/workshop-flow.md`. Per-skill cron registration: `docs/cron-setup.md`.
 
 ---
 
-## 라이선스 / 기여
+## License / contributing
 
-- 라이선스: MIT (`LICENSE` 참조).
-- 이슈/PR: https://github.com/wo-o/claude-code-toolkit
-- 설계 변경 제안: 이슈로 먼저 논의 후 PR.
+- License: MIT (see `LICENSE`).
+- Issues / PRs: https://github.com/wo-o/claude-code-toolkit
+- For design changes: discuss in an issue first, then open a PR.

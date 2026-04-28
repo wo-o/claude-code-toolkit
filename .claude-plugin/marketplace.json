@@ -5,15 +5,24 @@
     "url": "https://github.com/wo-o/claude-code-toolkit"
   },
   "metadata": {
-    "description": "팀 생산성 plugin marketplace. claude-code-toolkit 단일 plugin (다직군 통합) 배포."
+    "description": "Team productivity plugin marketplace. Single multi-role plugin: claude-code-toolkit."
   },
   "plugins": [
     {
       "name": "claude-code-toolkit",
       "source": "./",
-      "description": "팀 생산성 Claude Code skills + subagents 통합 plugin. 6 skills, 5 agents.",
+      "description": "Team productivity Claude Code skills + subagents. 14 skills, 5 agents. Slack / Notion / HubSpot / Gmail / Google Calendar via claude.ai/customize/connectors.",
       "category": "team-productivity",
-      "tags": ["team-productivity", "skills", "subagents", "workshop"]
+      "tags": [
+        "team-productivity",
+        "skills",
+        "subagents",
+        "slack",
+        "notion",
+        "hubspot",
+        "gmail",
+        "google-calendar"
+      ]
     }
   ]
 }

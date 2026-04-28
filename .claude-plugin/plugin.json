@@ -1,6 +1,6 @@
 {
   "name": "claude-code-toolkit",
-  "description": "팀 생산성 Claude Code plugin. 직군별(엔지·보안·PM·세일즈·CS) skills + subagents. 6 skills, 5 agents. Slack/Notion/HubSpot은 claude.ai/customize/connectors UI로 토글. 워크숍 데모 픽: decision-log-keeper, ticket-triage-router, spec-from-thread.",
+  "description": "Team productivity Claude Code plugin. Role-aware (eng / security / PM / sales / CS) skills + subagents. 14 skills, 5 agents. Slack / Notion / HubSpot / Gmail / Google Calendar via claude.ai/customize/connectors. Workshop demo picks: decision-log-keeper, ticket-triage-router, spec-from-thread.",
   "author": {
     "name": "wo-o",
     "url": "https://github.com/wo-o/claude-code-toolkit"
@@ -14,6 +14,8 @@
     "subagents",
     "slack",
     "notion",
-    "hubspot"
+    "hubspot",
+    "gmail",
+    "google-calendar"
   ]
 }

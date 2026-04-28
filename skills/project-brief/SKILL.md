@@ -5,104 +5,104 @@ description: Generate a one-page project brief by gathering recent activity from
 
 # project-brief
 
-특정 프로젝트의 Slack 최근 활동 + Notion 진행 상황을 수집해 한 페이지 브리프로 정리한다.
+Collects a project's recent Slack activity and Notion progress, then condenses it into a one-page brief.
 
 ## Input
 
-- 프로젝트명 (필수, 자연어 문자열). 예: `mobile-relaunch`, `payments-v2`, `Q2 OKR`
-- 입력 없으면 AskUserQuestion으로 받을 것 — 추측 금지
+- Project name (required, free-form string). Examples: `mobile-relaunch`, `payments-v2`, `Q2 OKR`
+- If missing, take it via AskUserQuestion — never guess.
 
 ## Output
 
-다음 형식의 한 페이지 브리프:
+A one-page brief in this format:
 
 ```
-# <프로젝트명> 브리프 (YYYY-MM-DD)
+# <Project Name> Brief (YYYY-MM-DD)
 
-## 한 줄 요약
-<현재 상태 1-2문장>
+## One-line summary
+<1-2 sentences on current state>
 
-## Slack 최근 활동
-- <YYYY-MM-DD HH:MM> #channel — 발화자: 핵심 메시지
-- (최대 5개, 최신순)
+## Recent Slack activity
+- <YYYY-MM-DD HH:MM> #channel — speaker: key message
+- (up to 5, newest first)
 
-## Notion 진행 상황
-- 페이지/DB: <제목>
-- 마일스톤: <달성 / 진행중 / 지연>
-- 핵심 결정: <목록>
+## Notion progress
+- Page/DB: <title>
+- Milestones: <achieved / in progress / delayed>
+- Key decisions: <list>
 
-## 발견된 이슈
-- <이슈 1>
-- <이슈 2>
+## Issues found
+- <issue 1>
+- <issue 2>
 
-## 다음 액션 (제안)
-- [ ] <액션 1>
-- [ ] <액션 2>
+## Next actions (suggested)
+- [ ] <action 1>
+- [ ] <action 2>
 ```
 
-## 진행 순서
+## Procedure
 
-### 1. 입력 검증
-- 프로젝트명 비어있으면 AskUserQuestion으로 받기
-- 너무 추상적이면 (예: "회사") 구체화 요청
+### 1. Validate input
+- If the project name is empty, take it via AskUserQuestion
+- If too abstract (e.g. "the company"), ask for something more concrete
 
-### 2. 병렬 정찰 (Subagent 2개 동시 spawn)
+### 2. Parallel scouts (spawn 2 subagents simultaneously)
 
-Task 툴로 두 서브에이전트를 한 메시지에서 동시 호출.
+Invoke both subagents in a single message via the Task tool.
 
-**slack-scout 호출:**
+**slack-scout invocation:**
 ```
-description: "Scout Slack for <프로젝트명>"
+description: "Scout Slack for <project name>"
 subagent_type: "slack-scout"
-prompt: "프로젝트명: <프로젝트명>. 관련 채널/메시지 검색해서 최근 7일 핵심 활동 정리. 응답은 SKILL.md output 섹션의 'Slack 최근 활동' 형식으로."
+prompt: "Project name: <project name>. Search related channels/messages and summarize the key activity from the last 7 days. Format the response per SKILL.md output section's 'Recent Slack activity'."
 ```
 
-**notion-scout 호출:**
+**notion-scout invocation:**
 ```
-description: "Scout Notion for <프로젝트명>"
+description: "Scout Notion for <project name>"
 subagent_type: "notion-scout"
-prompt: "프로젝트명: <프로젝트명>. 관련 페이지/DB 검색해서 진행 상황 정리. 응답은 SKILL.md output 섹션의 'Notion 진행 상황' 형식으로."
+prompt: "Project name: <project name>. Search related pages/DBs and summarize progress. Format the response per SKILL.md output section's 'Notion progress'."
 ```
 
-병렬로 한 메시지에서 두 Task tool call. 절대 순차 실행 금지 — Pattern B(fan-out scout)의 핵심.
+Issue both Task tool calls in one message in parallel. Never run them sequentially — that defeats the whole point of Pattern B (fan-out scouts).
 
-### 3. 통합 (Subagent synthesizer)
+### 3. Merge (subagent synthesizer)
 
-slack-scout / notion-scout 결과를 받아 synthesizer subagent 호출:
+Pass slack-scout / notion-scout results into the synthesizer subagent:
 
 ```
 description: "Synthesize project brief"
 subagent_type: "synthesizer"
 prompt: |
-  프로젝트명: <프로젝트명>
+  Project name: <project name>
 
-  [Slack 정찰 결과]
-  <slack-scout 응답>
+  [Slack scout result]
+  <slack-scout response>
 
-  [Notion 정찰 결과]
-  <notion-scout 응답>
+  [Notion scout result]
+  <notion-scout response>
 
-  위 두 입력을 SKILL.md output 섹션 전체 형식으로 합쳐 한 페이지 브리프 생성.
-  특히 다음을 강조:
-  - Slack 발언과 Notion 문서가 어긋나는 지점 (이슈 후보)
-  - Slack에서 결정됐지만 Notion에 반영 안 된 것 (다음 액션 후보)
+  Merge the two inputs into a one-page brief in the exact full output format from SKILL.md.
+  Especially highlight:
+  - Points where Slack discussion and Notion docs disagree (issue candidates)
+  - Things decided in Slack but not yet reflected in Notion (next-action candidates)
 ```
 
-### 4. 출력
+### 4. Output
 
-synthesizer 결과를 그대로 사용자에게 출력. 추가 가공 금지 — 형식은 synthesizer가 강제한다.
+Show the synthesizer's result to the user as-is. Do not post-process — the synthesizer already enforces the format.
 
-(선택) 사용자가 "Notion에 저장" 요청하면 `mcp__notion__create_page`로 페이지 생성. 부모 페이지는 사용자에게 묻기. 이 경로는 plugin hook (`PreToolUse(mcp__notion__create_page)`)에서 1회 사용자 확인 후 진행.
+(Optional) If the user asks to "save to Notion", call `mcp__notion__create_page`. Ask the user for the parent page. This path triggers the plugin hook (`PreToolUse(mcp__notion__create_page)`) which prompts once for confirmation before proceeding.
 
-## 함정
+## Pitfalls
 
-- **두 정찰 subagent를 순차 호출**: Pattern B fan-out 의의 사라짐. 반드시 한 메시지에 두 Task call 동시
-- **synthesizer를 거치지 않고 메인이 합침**: 메인 컨텍스트에 두 결과가 그대로 들어와 컨텍스트 격리 의미가 없다. 통합도 분리된 컨텍스트에서
-- **MCP를 메인이 직접 호출**: 메인이 Slack/Notion에 직접 접근하면 subagent 의의가 사라진다. MCP 호출은 정찰 subagent 안에서만
-- **결과 형식 깨짐**: synthesizer 프롬프트에서 형식 강제하지 않으면 매번 다르게 나옴. 출력 섹션 형식을 synthesizer 입력 프롬프트에 명시
+- **Calling the two scout subagents sequentially**: defeats the point of Pattern B fan-out. Always issue both Task calls in a single message.
+- **Bypassing the synthesizer and merging in main**: both scout results would land back in the main context, defeating context isolation. The merge step also runs in an isolated context.
+- **Main calls MCP directly**: if main accesses Slack/Notion directly, subagents lose their purpose. MCP calls happen only inside the scout subagents.
+- **Output format breaks**: if the synthesizer prompt does not enforce the format, the result varies every time. Specify the exact output section format inside the synthesizer's input prompt.
 
-## 톤
+## Tone
 
-- 사실 위주, 감상 금지
-- 마일스톤 진행 상태는 "달성/진행중/지연" 셋 중 하나로만 표기
-- Slack 메시지 인용 시 발화자 + 날짜 필수
+- Stick to facts; no commentary
+- Milestone status uses one of three labels only: "achieved / in progress / delayed"
+- Quoted Slack messages must include speaker + date

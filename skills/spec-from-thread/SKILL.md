@@ -5,119 +5,119 @@ description: Take a Slack thread URL, classify each message into [decision / req
 
 # spec-from-thread
 
-PM이 신규 기능 논의를 Slack thread에서 진행하면 결정·요구사항·오픈 질문이 50-100개 메시지에 흩어진다. 이를 Notion 스펙 페이지로 옮기는 데 1-2시간 → 결국 안 함. URL 1개 입력으로 fetch + 분류 + Notion 작성이 한 명령으로 끝남.
+When a PM debates a new feature in a Slack thread, decisions, requirements, and open questions get scattered across 50-100 messages. Hand-converting them into a Notion spec page takes 1-2 hours — so it never happens. With a single URL as input, this skill fetches + classifies + writes to Notion in one command.
 
 ## Input
 
-- `--thread-url <slack-permalink>` (필수) — Slack thread 영구 링크 (`https://<workspace>.slack.com/archives/<channel>/p<ts>` 형식)
-- `--notion-parent-id <id>` (선택, 환경변수 `CLAUDE_CODE_TOOLKIT_SPEC_PARENT_ID`로 fallback) — Notion 부모 페이지 ID
-- `--title <text>` (선택) — 생성할 스펙 페이지 제목. 누락 시 thread 첫 메시지에서 LLM 추출
-- 입력 누락 → AskUserQuestion (추측 금지)
+- `--thread-url <slack-permalink>` (required) — Slack thread permalink (`https://<workspace>.slack.com/archives/<channel>/p<ts>` format)
+- `--notion-parent-id <id>` (optional, falls back to env `CLAUDE_CODE_TOOLKIT_SPEC_PARENT_ID`) — Notion parent page ID
+- `--title <text>` (optional) — title for the spec page being created. If missing, the LLM extracts one from the thread's first message.
+- Missing input → AskUserQuestion (never guess)
 
 ## Output
 
-콘솔 1줄 요약 + Notion 페이지 URL:
+One-line console summary + Notion page URL:
 
 ```
-Thread <permalink> → 메시지 N건 분류 (결정 N / 요구 N / 질문 N / 잡담 N) → Notion 스펙 페이지 생성
+Thread <permalink> → classified N messages (decisions N / requirements N / questions N / chatter N) → Notion spec page created
 - Notion: <page URL>
 ```
 
-생성되는 Notion 페이지 본문 형식:
+Format of the Notion page body:
 
 ```
-# <제목>
+# <Title>
 
-## 출처
+## Source
 - Slack thread: <permalink>
-- 추출 일시: YYYY-MM-DD HH:MM KST
-- 메시지 수: N건 (결정 N / 요구 N / 질문 N / 잡담 제외)
+- Extracted at: YYYY-MM-DD HH:MM KST
+- Message count: N (decisions N / requirements N / questions N / chatter excluded)
 
-## 목적
-<thread 첫 메시지 또는 LLM 추정 1단락>
+## Purpose
+<thread's first message, or LLM-inferred 1-paragraph summary>
 
-## 결정사항
-- <결정 1> (작성자: @<display_name>, <시각>)
+## Decisions
+- <decision 1> (author: @<display_name>, <time>)
 - ...
 
-## 요구사항
-- <요구 1> (작성자: ...)
+## Requirements
+- <requirement 1> (author: ...)
 - ...
 
-## 오픈 이슈
-- <질문 1> (작성자: ...)
+## Open issues
+- <question 1> (author: ...)
 - ...
 
-## 다음 액션 (제안)
-- [ ] <액션 1>
-- [ ] <액션 2>
+## Next actions (suggested)
+- [ ] <action 1>
+- [ ] <action 2>
 
-## 검토 한계
-- 잡담 분류된 메시지 N건은 본문에서 제외됨 (원문은 Slack thread에서 확인)
-- 결정/요구 구분이 모호한 경우 결정 우선
+## Caveats
+- N messages classified as chatter were excluded from the body (originals available in the Slack thread)
+- When decision/requirement is ambiguous, decision wins
 ```
 
-## 진행 순서
+## Procedure
 
-### 1. 입력 파싱
+### 1. Parse input
 
-- `--thread-url` 파싱: workspace·channel-id·ts 추출. 형식 아니면 거부
-- `--notion-parent-id` 누락 + env 누락 → AskUserQuestion
-- `--title` 누락 → step 3 후 LLM 추정
+- Parse `--thread-url`: extract workspace · channel-id · ts. Reject if not in this format.
+- `--notion-parent-id` missing AND env missing → AskUserQuestion
+- `--title` missing → LLM-infer in step 3
 
-### 2. Thread 메시지 수집
+### 2. Collect thread messages
 
-`mcp__slack__get_channel_history` 호출:
-- `channel`: 추출한 channel-id
-- `oldest`: thread_ts (parent 메시지 시각)
-- `latest`: thread_ts + 30일 (thread 응답 모두 커버)
+Call `mcp__slack__get_channel_history`:
+- `channel`: extracted channel-id
+- `oldest`: thread_ts (parent message time)
+- `latest`: thread_ts + 30 days (to cover all thread replies)
 - `limit`: 200
 
-또는 thread 전용 도구가 있으면 우선 사용 (Slack Connector가 노출하는 도구명은 `claude /mcp` 출력에서 확인).
+Or use a thread-dedicated tool if exposed (check the Slack Connector's tool name in `claude /mcp` output).
 
-각 메시지에 `mcp__slack__get_user_info`로 user_id → display_name 변환 (캐싱).
+For each message, resolve user_id → display_name with `mcp__slack__get_user_info` (cached).
 
-### 3. LLM 분류
+### 3. LLM classification
 
-각 메시지를 [결정 / 요구 / 질문 / 잡담] 1개로 분류:
+Classify each message into one of [decision / requirement / question / chatter]:
 
-| 카테고리 | 신호 |
+| Category | Signal |
 |---|---|
-| 결정 | "X로 정함", "Y하기로", "최종적으로 Z", 결재 이모지 |
-| 요구 | "Y가 필요함", "X 해야 함", "반드시", spec 형태 |
-| 질문 | `?`로 끝남, "어떻게", "가능한가", "예외는?" |
-| 잡담 | 인사, 동의("ㅇㅋ"), 감사, 무관 정보 |
+| decision | "going with X", "decided on Y", "finalized Z", approval reactions |
+| requirement | "need Y", "must have X", "definitely", spec-shaped statements |
+| question | ends in `?`, "how to", "is it possible", "what about exceptions?" |
+| chatter | greetings, agreement ("ok"), thanks, unrelated info |
 
-신뢰도 모호 시 결정 우선 (요구·질문에 결정성 발화가 섞이면 결정).
+When confidence is unclear, decision wins (if requirement/question contains decision-like phrasing, classify as decision).
 
-### 4. 제목 추정 (필요 시)
+### 4. Title inference (if needed)
 
-`--title` 누락이면 thread 첫 메시지 + 결정 사항 1-2건을 LLM 입력으로 50자 이내 제목 생성.
+If `--title` is missing, generate a title (≤ 50 chars) using the LLM with the thread's first message + 1-2 decisions as input.
 
-### 5. Notion 페이지 생성
+### 5. Create Notion page
 
-`mcp__notion__create_page` 호출:
-- `parent`: `page_id` = 입력된 부모 페이지 ID
-- `properties`: `title` = 제목
-- `children`: 위 본문 형식대로 paragraph/heading_2/bulleted_list_item/to_do block 조합
+Call `mcp__notion__create_page`:
+- `parent`: `page_id` = the input parent page ID
+- `properties`: `title` = title
+- `children`: combination of paragraph / heading_2 / bulleted_list_item / to_do blocks per the body format above
 
-**hook 동작:** plugin의 `PreToolUse(mcp__notion__create_page)` hook이 발화 — 사용자에게 "Notion에 신규 페이지 생성합니다. 진행?" 1회 확인. **본 릴리스에서는 인터랙티브 confirm 전용 — bypass 사용 금지** (현 hook은 audit log를 `decision-log-YYYY-MM-DD.jsonl`로만 기록하므로 spec-from-thread bypass 시 다른 skill의 audit trail에 섞여버린다). cron 자동화는 caller-aware audit log 분리 후 활성화 검토.
+**Hook behavior:** the plugin's `PreToolUse(mcp__notion__create_page)` hook fires — asks the user once "About to create a new Notion page. Proceed?". **In this release this is interactive-confirm only — bypass not allowed** (the current hook only writes audit logs to `decision-log-YYYY-MM-DD.jsonl`, so a spec-from-thread bypass would mix into another skill's audit trail). Cron automation will be considered after caller-aware audit log separation lands.
 
-### 6. 출력
+### 6. Output
 
-콘솔 1줄 요약 + Notion 페이지 URL. 끝.
+One-line console summary + Notion page URL. Done.
 
-## 함정
+## Pitfalls
 
-- **Thread parent 메시지가 #channel root이고 thread 응답이 거의 없음**: thread 자체가 thread가 아닌 단발 메시지일 수 있음. parent 1건만 있으면 "스펙 추출 의미 없음" 안내 후 종료
-- **분류 prompt 너무 느슨**: 결정과 요구가 같은 문장에 섞이면 둘 다로 잘못 분류됨. system prompt에 "한 메시지 당 1개 카테고리만, 결정 우선" 강제
-- **LLM이 잡담 메시지에서 잡담 외 정보 누락**: 잡담 분류된 메시지에 사실 정보가 섞여 있을 수 있음 — "검토 한계" 섹션에 명시
-- **동일 thread 재실행 시 중복 페이지**: 매 호출마다 신규 Notion 페이지 생성. 중복 방지 로직 미포함 — 사용자가 알아서 기존 페이지 삭제 또는 `--update` 모드 (TBD)
-- **Slack Connector의 thread 전용 도구 부재**: `claude /mcp`로 노출 도구명 확정 (예: `get_thread_replies`가 별도 노출되는지). 부재 시 `get_channel_history` + thread_ts로 우회
+- **Thread parent message is a #channel root with almost no replies**: the "thread" may actually be a single message rather than an actual thread. If only the parent exists, print "No spec to extract" and exit.
+- **Loose classification prompt**: when decisions and requirements blend in one sentence, the LLM tags both. Force in the system prompt: "one category per message, decisions win".
+- **LLM drops factual info from chatter messages**: chatter-classified messages may carry real facts — mention this explicitly in the "Caveats" section.
+- **Re-running on the same thread duplicates pages**: every call creates a new Notion page. No dedupe logic — the user must delete the old page or use an `--update` mode (TBD).
+- **No thread-dedicated tool from the Slack Connector**: confirm the exposed tool names with `claude /mcp` (e.g. whether `get_thread_replies` is exposed separately). If absent, fall back to `get_channel_history` + thread_ts.
 
-## 톤
+## Tone
 
-- 결정/요구 인용 시 원문 유지, 의역 금지
-- 작성자 익명 처리 X — display_name 그대로
-- "추측" 표현 환영 (잡담 분류 신뢰도 낮은 경우)
-- 가짜 자신감 ("이게 모든 결정입니다" 등) 금지
+- Quote decisions/requirements verbatim — no paraphrasing
+- Do not anonymize the author — keep display_name as-is
+- "Speculative" wording is welcome (when chatter classification confidence is low)
+- No fake confidence ("these are all the decisions", etc.)
